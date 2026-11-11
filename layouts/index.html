@@ -1,4 +1,5 @@
 {{ define "main" }}
+{{ if site.Params.catalog }}{{ partial "catalog.html" . }}{{ else }}
 {{ $d := site.Data.survey }}
 {{ $notes := site.Data.notes }}
 {{ $m := site.Data.map.map | default dict }}
@@ -114,6 +115,7 @@
               <h3 class="sname"><button type="button" data-filter="{{ $s.id }}" title="List its papers">{{ $s.name }}</button>{{ if in $mine $s.id }}<span class="minedot" title="where my work sits">●</span>{{ end }}</h3>
               <p class="sstat">{{ $s.primary }} main · {{ $s.count }} in all</p>
               <p class="sstat">{{ $s.last4w }} vs {{ $s.prev4w }} in 4 wk{{ if ne $s.trend nil }} · {{ if gt $s.trend 0 }}<span class="up">+{{ $s.trend }}%</span>{{ else if lt $s.trend 0 }}{{ $s.trend }}%{{ else }}±0%{{ end }}{{ end }}</p>
+              <p class="sstat"><a href="{{ printf "feeds/%s.xml" $s.id | relURL }}" title="New {{ $s.name }} papers in a feed reader (or RSS-to-email)">RSS</a></p>
               <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ delimit $pts " " }}"></polyline></svg>
             </div>
             <div class="smain">
@@ -301,7 +303,7 @@
       <div class="content">
         <p>Every morning (06:00 UTC) a GitHub Action asks the arXiv API for the last {{ $d.weeks }} weeks of papers in {{ delimit ($ax.categories | default slice) ", " " and " }} that match {{ len ($ax.queries | default slice) }} search terms. Only first releases count: a new version or cross-listing of an older paper is skipped.</p>
         <p>A paper has to be <i>about</i> the topic: a topic rule is scored (title three times, abstract once) and must reach a threshold, and a list of negative patterns drops the usual false friends. Each of the {{ len $d.subfields }} subfields is a keyword rule scored the same way; a paper gets every subfield it clearly matches, and the strongest one is its main subject.{{ with $d.applications }} Papers that apply existing techniques to a domain task are kept in the list as “applications” but left out of every figure.{{ end }} Each subfield shows representative papers: hand-picked ones (“picked”) and its own main-subject papers from the last eight weeks ranked by venue acceptance, citations and public code (“recent”).</p>
-        <p>Semantic Scholar adds author IDs (so namesakes stay apart), citation counts and venues. Every rule is in <a href="{{ $repo }}/blob/main/map.toml" rel="noopener"><code>map.toml</code></a>; hand corrections, picks and the editor’s notes are in <a href="{{ $repo }}/blob/main/notes.toml" rel="noopener"><code>notes.toml</code></a>.{{ with $cd }} Figure 4 comes from a card per paper: a language model ({{ delimit .models ", " }}) reads the title and abstract and picks the paper’s tasks and the methods it proposes or merely uses from fixed lists, quoting the abstract as evidence for every tag. A tag is kept only if its quote is found word for word in the abstract. Cards come only from public abstracts, so they share the abstract’s blind spots.{{ end }} It remains a rough instrument — a map of where attention goes, not a curated reading list.<sup><a href="#fn-arxiv">1</a></sup></p>
+        <p>Semantic Scholar adds author IDs (so namesakes stay apart), citation counts and venues. Every rule is in <a href="{{ $repo }}/blob/main/{{ site.Params.mapPath | default "map.toml" }}" rel="noopener"><code>map.toml</code></a>; hand corrections, picks and the editor’s notes are in <a href="{{ $repo }}/blob/main/{{ site.Params.notesPath | default "notes.toml" }}" rel="noopener"><code>notes.toml</code></a>.{{ with $cd }} Figure 4 comes from a card per paper: a language model ({{ delimit .models ", " }}) reads the title and abstract and picks the paper’s tasks and the methods it proposes or merely uses from fixed lists, quoting the abstract as evidence for every tag. A tag is kept only if its quote is found word for word in the abstract. Cards come only from public abstracts, so they share the abstract’s blind spots.{{ end }} It remains a rough instrument — a map of where attention goes, not a curated reading list.<sup><a href="#fn-arxiv">1</a></sup></p>
         <p>This page is built with <a href="https://github.com/ym-xu/living-survey" rel="noopener">living-survey</a>: fork it, describe your own field in one file, and GitHub keeps the map up to date for free.</p>
         <p id="fn-arxiv" class="fn"><sup>1</sup> Thank you to arXiv for use of its open access interoperability; author IDs, citations and venues from Semantic Scholar. Data window: {{ dateFormat "Jan 2, 2006" $d.since }} – {{ dateFormat "Jan 2, 2006" $d.today }}.</p>
       </div>
@@ -309,4 +311,5 @@
   </div>
   {{ end }}
 </article>
+{{ end }}
 {{ end }}

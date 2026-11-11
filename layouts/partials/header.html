@@ -4,8 +4,14 @@
     {{ with $m.author_url }}<a href="{{ . }}">{{ $m.author | default "Home" }}</a>{{ else }}<a href="{{ "/" | relURL }}">{{ $m.author | default "Living Survey" }}</a>{{ end }}
   </div>
   <nav class="nav" aria-label="Main">
+    {{ if site.Params.catalog }}
+    <a class="nav-item" href="#my-feed">My feed</a>
+    <a class="nav-item" href="#fields">Fields</a>
+    {{ else }}
+    {{ with site.Params.catalogURL }}<a class="nav-item" href="{{ . }}">All fields</a>{{ end }}
     <a class="nav-item" href="#papers">Papers</a>
     <a class="nav-item" href="#method">Method</a>
+    {{ end }}
     <a class="nav-item" href="{{ site.Params.repo }}" rel="noopener">Make your own</a>
     <button id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"></path></svg>

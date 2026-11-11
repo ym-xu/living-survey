@@ -6,7 +6,8 @@
 __pycache__/
 # Generated every morning by the GitHub Action (kept in the Actions cache, not in git)
 data/survey.json
-# (data/survey_cards.json IS committed: LLM cards are made once per paper, so the template
+data/fields/*/survey.json
+# (survey_cards.json IS committed: LLM cards are made once per paper, so the template
 #  ships them; the first run prunes them to your own field's papers.)
 scripts/.cache/
 .DS_Store

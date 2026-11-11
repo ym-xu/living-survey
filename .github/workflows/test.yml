@@ -26,4 +26,4 @@ jobs:
           hugo-version: "0.150.1"
           extended: true
       - name: Site builds before any data exists (a fresh fork's first run)
-        run: hugo --minify -d /tmp/site
+        run: python3 scripts/build.py build --base-url https://example.org/site/ --out /tmp/site

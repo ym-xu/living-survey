@@ -29,8 +29,13 @@ Read `LESSONS.md` before changing code: it is what went wrong before.
 
 ## Boundaries
 
-- `map.toml` and `notes.toml` are the author's description of their field. Don't edit
-  their content unless an issue asks for it; tests use `tests/fixtures/map.toml`.
+- `fields/<id>/map.toml` and `notes.toml` (or a top-level `map.toml`) describe a
+  public field. Don't edit their content unless an issue asks for it; tests use
+  `tests/fixtures/map.toml`. A new field follows `docs/ADDING_A_FIELD.md` and is never
+  merged by an agent.
+- Nothing about a viewer leaves their browser: what they follow lives in
+  localStorage and the address bar. A feature that needs to store something about a
+  person is a product decision (see `docs/PRODUCT.md`), not an implementation detail.
 - Generated data is not committed (`data/survey.json`, `scripts/.cache/`), except
   `data/survey_cards.json`, which the template ships on purpose.
 - The pipeline scripts use the Python standard library only (3.11+). Adding a

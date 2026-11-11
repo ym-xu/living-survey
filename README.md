@@ -4,7 +4,7 @@
 
 You describe your field in one file. GitHub runs it and hosts it, for free. There is no server to run.
 
-**Live example → [Document Understanding: A Living Map](https://ym-xu.github.io/living-survey/)**
+**Live → [ym-xu.github.io/living-survey](https://ym-xu.github.io/living-survey/)**: every field on one page. Tick the subfields you care about and their new papers collect in *My feed* (kept in your browser, never sent anywhere); every subfield also has its own RSS feed.
 
 <a href="https://ym-xu.github.io/living-survey/"><img src="docs/map.png" alt="The top of a living map: subfields, their trends and a weekly heat map" width="720"></a>
 
@@ -23,11 +23,12 @@ Papers can carry several subfields. The rules are plain regular expressions you 
 ## Make your own (about 5 minutes)
 
 1. Click **Use this template** and create a **public** repository. Its name becomes part of the address: `you.github.io/<name>/`.
-2. Replace `map.toml` with [`examples/starter.toml`](examples/starter.toml), or with [`examples/rag.toml`](examples/rag.toml) to see a complete second field, and fill in the TODOs. Delete `notes.toml`: those are my notes on document understanding.
+2. Delete the `fields/` folder (those are my maps) and copy [`examples/starter.toml`](examples/starter.toml) to `map.toml` at the top, or [`examples/rag.toml`](examples/rag.toml) to see a complete field. Fill in the TODOs.
+   *Several fields?* Keep `fields/` instead and give each field its own folder, `fields/<id>/map.toml` (+ an optional `notes.toml`); the front page then lists them all (settings in `fields/catalog.toml`).
 3. **Settings → Pages → Source: GitHub Actions.**
 4. **Actions → Daily map → Run workflow.** About a minute later your map is live, and it rebuilds every morning at 06:00 UTC.
 
-The cards data the template ships with is for my field. On the first run it is pruned to your own papers.
+Delete `data/fields/` too: the cards data in it is for my fields.
 
 ### Optional: Figure 4 (methods × tasks)
 
@@ -45,10 +46,13 @@ Add a repository secret `LLM_API_KEY` (**Settings → Secrets and variables → 
 Python 3.11+ and nothing else:
 
 ```bash
-python3 scripts/fetch.py           # fetch and file papers -> data/survey.json
-python3 scripts/cards.py           # paper cards + Figure 4 (needs LLM_API_KEY)
-hugo server                        # preview at http://localhost:1313
+python3 scripts/build.py fetch     # fetch and file papers, every field -> data/…/survey.json
+python3 scripts/build.py cards     # paper cards + Figure 4 (needs LLM_API_KEY)
+python3 scripts/build.py serve rag # preview one field, live reload (just `serve` for the whole site)
+python3 -m unittest discover -s tests
 ```
+
+With a single `map.toml`, `python3 scripts/fetch.py` and `hugo server` work as before.
 
 - Look at which papers land where and adjust the `match` rules in `map.toml`.
 - If a whole family of false positives gets in, add a pattern to `[filter] exclude`.
@@ -68,10 +72,11 @@ Everything else (layout, styles, scripts) works the same for every field.
 ## How it works
 
 ```text
+                 for every field (build.py)
 arXiv API ──> fetch.py ──> survey.json ──┐
-                  │                      ├──> Hugo ──> GitHub Pages
-Semantic Scholar ─┘     cards.py ──> survey_cards.json
-                        (LLM, optional)
+                  │                      ├──> Hugo ──> /fields/<id>/ + feeds/<subfield>.xml ─┐
+Semantic Scholar ─┘     cards.py ──> survey_cards.json                                       ├──> GitHub Pages
+                        (LLM, optional)            catalog of all fields + "My feed" ──> / ──┘
 ```
 
 - Each paper is scored against every subfield rule: title hits count three times, abstract hits once (capped).
@@ -87,4 +92,5 @@ MIT licensed. Built by [Yiming Xu](https://ym-xu.github.io/). If you run a map o
 
 ### Maps
 
-- [Document Understanding](https://ym-xu.github.io/living-survey/) — layout, OCR, tables, charts, document QA, long documents, retrieval and agents.
+- [Document Understanding](https://ym-xu.github.io/living-survey/fields/document-understanding/) — layout, OCR, tables, charts, document QA, long documents, retrieval and agents.
+- [Retrieval-Augmented Generation](https://ym-xu.github.io/living-survey/fields/rag/) — retrievers, graphs, agentic RAG, evaluation.

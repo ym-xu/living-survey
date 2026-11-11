@@ -39,6 +39,7 @@ jobs:
           path: |
             data/survey.json
             data/survey_cards.json
+            data/fields
             scripts/.cache
           key: map-${{ github.run_id }}
           restore-keys: map-
@@ -47,14 +48,17 @@ jobs:
       - name: Tests
         run: python3 -m unittest discover -s tests
 
+      # Every field in fields/ (or the single map.toml). A broken map.toml fails its own
+      # field only: it is flagged in the run, and its page keeps yesterday's data.
       - name: Fetch papers from arXiv
-        run: python3 scripts/fetch.py
+        continue-on-error: true
+        run: python3 scripts/build.py fetch
         env:
           S2_API_KEY: ${{ secrets.S2_API_KEY }}       # optional: Semantic Scholar rate limit
 
       - name: Paper cards (Figure 4)
         continue-on-error: true                     # a failed card run never blocks the page
-        run: python3 scripts/cards.py
+        run: python3 scripts/build.py cards
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}     # optional; without it Figure 4 keeps the cards it has
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}      # optional repository variables, default DeepSeek
@@ -66,6 +70,7 @@ jobs:
           path: |
             data/survey.json
             data/survey_cards.json
+            data/fields
             scripts/.cache
           key: map-${{ github.run_id }}
 
@@ -79,7 +84,7 @@ jobs:
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/daily.yml/enable"
 
       - name: Build
-        run: hugo --minify -b "${{ steps.pages.outputs.base_url }}/"
+        run: python3 scripts/build.py build --base-url "${{ steps.pages.outputs.base_url }}/"
         env:
           HUGO_PARAMS_REPO: ${{ github.server_url }}/${{ github.repository }}
 

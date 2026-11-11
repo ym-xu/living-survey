@@ -1,5 +1,9 @@
 {{- $site := resources.Get "js/site.js" | minify | fingerprint -}}
 <script defer src="{{ $site.RelPermalink }}" integrity="{{ $site.Data.Integrity }}"></script>
+{{- if site.Params.catalog }}
+{{- $cat := resources.Get "js/catalog.js" | minify | fingerprint }}
+<script defer src="{{ $cat.RelPermalink }}" integrity="{{ $cat.Data.Integrity }}"></script>
+{{- end }}
 {{- $survey := resources.Get "js/survey.js" | minify | fingerprint }}
 <script defer src="{{ $survey.RelPermalink }}" integrity="{{ $survey.Data.Integrity }}"></script>
 {{ with site.Params.plausibleDomain }}<script defer data-domain="{{ . }}" src="https://plausible.io/js/script.js"></script>{{ end }}

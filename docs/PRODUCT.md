@@ -13,6 +13,23 @@ Today's repository is a **template**: one field per fork, configured by hand in
 `map.toml`. That stays (it is the free, self-hosted edition), but most researchers
 will not write regular expressions. The hosted service removes that step.
 
+## Phase 1: no personal information (decided 2026-11-11)
+
+The first version asks for nothing about the user. They pick public fields and
+subfields; what they follow stays in their browser. Personalised recommendations
+(their own keywords or papers) come later, and only if phase 1 shows people need them.
+
+- A catalog of public field maps at `/`, each map at `/fields/<id>/`.
+- **My feed**: the subfields a viewer ticks, kept in localStorage and shareable as a
+  link (`#follow=field/sub,…`). No account, no server, nothing sent.
+- An RSS feed per subfield, and one for the whole site. Email is RSS-to-email by an
+  external service, chosen by the user — we store no addresses.
+- New fields come from "New field" issues: an agent drafts the rules and proves them
+  on real data (`docs/ADDING_A_FIELD.md`); the owner merges. One person's request
+  becomes a field everyone can follow.
+- Research points are per field and public (the same for everyone), so the LLM cost
+  grows with the number of fields, not users.
+
 ## The key design choice: shared work vs per-user work
 
 Cost must grow with the number of **papers**, not the number of **users**.
@@ -42,8 +59,9 @@ Users rate points (useful / not / already done); that feedback tunes what is sho
 
 - **M0 — Foundation (done in this round).** Tests that run without network, CI on
   every push, the daily deploy gated on tests, `AGENTS.md` / `LESSONS.md`.
-- **M1 — Several fields, one pipeline.** `fetch.py` runs over a list of maps and
-  shares fetching and cards between them. Still static pages.
+- **M1 — Several fields, one pipeline (in progress).** `scripts/build.py` runs every
+  `fields/<id>/` map, builds each page, the catalog with My feed, and per-subfield
+  feeds. Still static pages. Not yet: sharing one arXiv fetch between fields.
 - **M2 — Profiles and a daily digest (private beta).** A user gives a description
   and/or seed papers (or their Semantic Scholar author page); we generate their
   profile (embedding + rules, editable) and send a daily email / RSS. Needs a small

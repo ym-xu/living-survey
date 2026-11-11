@@ -1,0 +1,10 @@
+# The catalog page at the root of the site, listing every fields/<id>/ map.
+title = "Living Survey"
+intro = """
+Daily maps of research fields, compiled from arXiv every morning. Tick the subfields
+you care about: their new papers collect in **My feed**, and every subfield has its
+own RSS feed. What you follow stays in your browser.
+"""
+order = ["document-understanding", "rag"]     # fields not listed come after, A–Z
+# Links to the old single-map address (…/#tag=ocr) go on to this field.
+legacy = "document-understanding"

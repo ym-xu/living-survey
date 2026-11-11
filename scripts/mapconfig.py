@@ -54,7 +54,8 @@ def load():
         with open(MAP, "rb") as f:
             m = tomllib.load(f)
     except FileNotFoundError:
-        fail("not found — copy one from examples/ to get started")
+        fail("not found — copy one from examples/ to get started"
+             + (" (this repository has fields/: run scripts/build.py, or set LS_MAP)" if os.path.isdir(os.path.join(ROOT, "fields")) else ""))
     except tomllib.TOMLDecodeError as e:
         fail(f"not valid TOML: {e}")
     for key in ("map", "arxiv", "filter"):
