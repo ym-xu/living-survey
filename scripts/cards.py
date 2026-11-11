@@ -22,6 +22,7 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -178,6 +179,7 @@ def compact(card, title, abstract, model, sig):
 def extract(papers, key, system, tasks, methods, sig, workers=6):
     abstracts = fetch_abstracts([p["id"] for p in papers])
     out, errors, tokens = {}, 0, 0
+    lock = threading.Lock()                       # tokens is summed from the worker threads
 
     def work(p):
         nonlocal tokens
@@ -185,7 +187,8 @@ def extract(papers, key, system, tasks, methods, sig, workers=6):
         user = f"Title: {a['title']}\n\nAbstract: {a['abstract']}"
         for attempt in range(2):
             raw, meta = llm.chat_json(key, system, user)
-            tokens += int(meta["usage"].get("total_tokens") or 0)
+            with lock:
+                tokens += int(meta["usage"].get("total_tokens") or 0)
             card, bad = conform(raw, tasks, methods)
             if card and not bad:
                 return p["id"], compact(card, a["title"], a["abstract"], meta["model"], sig)

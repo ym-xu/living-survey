@@ -42,7 +42,11 @@ VENUES = ["CVPR", "ICCV", "ECCV", "NeurIPS", "ICLR", "ICML", "ACL", "EMNLP", "NA
           "ICDAR", "WACV", "BMVC", "ACM MM", "KDD", "SIGIR", "WWW", "CIKM", "WSDM", "ICASSP", "ICPR", "DAS", "LREC",
           "TPAMI", "IJCV", "TIP", "TACL", "Pattern Recognition", "ICME", "ACCV", "MICCAI", "JCDL", "TPDL", "RecSys",
           "Interspeech", "CoRL", "ICRA", "IROS", "UAI", "AISTATS", "COLT", "TMLR", "JMLR", "TKDE", "TOIS", "CHI", "UIST"]
-ACCEPT_RX = re.compile(r"accept|to appear|published|camera[- ]ready|proceedings|main conference|findings|oral|spotlight|poster|workshop|\bat\b|\bin\b", re.I)
+ACCEPT_RX = re.compile(r"accept|to appear|published|camera[- ]ready|proceedings|main conference|findings|oral|spotlight|poster|workshop", re.I)
+# Without an acceptance word, a venue counts only with a year and in a telling spot: "in CVPR 2026",
+# "at ICDAR 2025", or opening the comment or a clause ("12 pages, WACV 2026"). So "compared with
+# methods in CVPR" is not an acceptance.
+VENUE_LEAD = re.compile(r"(?:^|[,;:(]|\b(?:in|at)(?:\s+the)?)$", re.I)
 UNDER_REVIEW = re.compile(r"submitted|under review|in submission|under submission|preprint|extended version of", re.I)
 CODE_RX = re.compile(r"https?://(?:www\.)?(?:github\.com|gitlab\.com|huggingface\.co)/[\w.\-/]+[\w/]", re.I)
 BENCH_TITLE = re.compile(r"\b(benchmark\w*|dataset|corpus)s?\b|\bbench\b|bench\b", re.I)
@@ -70,7 +74,8 @@ def base_id(s):
 
 def curated(notes):
     ids = lambda xs: {re.sub(r"v\d+$", "", e["id"] if isinstance(e, dict) else e) for e in xs}
-    return {"exclude": ids(notes.get("exclude", [])), "include": ids(notes.get("include", [])),
+    include_tag = {re.sub(r"v\d+$", "", e["id"]): e["tag"] for e in notes.get("include", []) if isinstance(e, dict) and e.get("tag")}
+    return {"exclude": ids(notes.get("exclude", [])), "include": ids(notes.get("include", [])), "include_tag": include_tag,
             "featured": {k: list(v) for k, v in notes.get("featured", {}).items()},
             "picks": {p["id"]: p.get("note", "") for p in notes.get("picks", [])}}
 
@@ -166,9 +171,14 @@ def main():
             if not text:
                 continue
             mt = venue_rx.search(text)
-            if not mt or (text is comment and (not ACCEPT_RX.search(text)
-                                                or (UNDER_REVIEW.search(text) and not re.search(r"accept", text, re.I)))):
+            if not mt:
                 continue
+            if text is comment:
+                if UNDER_REVIEW.search(text) and not re.search(r"accept", text, re.I):
+                    continue
+                lead = bool(mt.group(2)) and VENUE_LEAD.search(text[:mt.start()].rstrip())
+                if not ACCEPT_RX.search(text) and not lead:
+                    continue
             name = canon_venue(mt.group(1)) or mt.group(1)
             name = {"NIPS": "NeurIPS", "ACMMM": "ACM MM"}.get(name.upper(), name)
             year = mt.group(2) or ""
@@ -217,70 +227,108 @@ def main():
 
     today = dt.datetime.now(dt.timezone.utc).date()
     since = today - dt.timedelta(days=weeks * 7 - 1)
-    papers, seen, start = [], set(), 0
+
+    def paper_of(e, base, pub):
+        """The paper record for one arXiv entry, or None if it doesn't belong on the map."""
+        if pub < since:
+            return None
+        m_id = re.match(r"(\d{2})(\d{2})\.", base)
+        if m_id and (2000 + int(m_id.group(1)), int(m_id.group(2))) < (since.year, since.month):
+            return None  # an old paper resurfacing (new version / cross-list): first releases only
+        title = clean(e.findtext("a:title", "", NS))
+        abstract = clean(e.findtext("a:summary", "", NS))
+        text = f"{title} {abstract}"
+        sc = score(title, abstract)
+        forced = base in cur["include"]       # hand-confirmed: skip the relevance gates
+        if not sc and forced:
+            tag = cur["include_tag"].get(base)
+            if tag not in by_sid:
+                if tag:
+                    print(f"  notes.toml include {base}: unknown subfield {tag!r}", file=sys.stderr)
+                tag = order[-1]
+                print(f"  notes.toml include {base}: matches no subfield, filed under {tag!r} "
+                      f"(add tag = \"<subfield id>\" to choose)", file=sys.stderr)
+            sc = {tag: 2}
+        if not forced and (not sc or (f["require_rx"] and not f["require_rx"].search(text))
+                           or (f["exclude_rx"] and f["exclude_rx"].search(text))):
+            return None
+        tags = rank(sc)
+        ts = topic_strength(title, abstract)
+        main_sub = by_sid[tags[0]]
+        if not forced and (ts < max(topic_min, int(main_sub.get("topic_min", 0)))
+                           or (main_sub.get("strong") and f["strong_rx"] and not f["strong_rx"].search(text))):
+            return None  # not about the topic, or a broad subfield without the strong cue
+        prim = e.find("arxiv:primary_category", NS)
+        authors = [clean(a.findtext("a:name", "", NS)) for a in e.findall("a:author", NS)]
+        comment = clean(e.findtext("arxiv:comment", "", NS))
+        jref = clean(e.findtext("arxiv:journal_ref", "", NS))
+        code = CODE_RX.search(f"{abstract} {comment}")
+        app_rx = f["application_rx"]
+        return {
+            "id": base, "title": title,
+            "authors": authors[:4] + (["et al."] if len(authors) > 4 else []),
+            "date": pub.isoformat(),
+            "cat": prim.get("term") if prim is not None else "",
+            "tags": tags,                      # tags[0] is the main subfield
+            "bench": bool(BENCH_TITLE.search(title) or BENCH_ABS.search(abstract)),
+            "watch": bool(watch_rx and any(watch_rx.fullmatch(a) for a in authors)),
+            "pick": ((cur["picks"][base] or True) if base in cur["picks"] else None),   # note text, or true
+            "app": bool(app_rx and app_rx.search(title) and not BENCH_TITLE.search(title)) and not forced,
+            "report": bool(RELEASE.search(title)),
+            "_sc": sc[tags[0]],
+            "venue": venue_of(comment, jref),
+            "code": code.group(0).rstrip(".,);") if code else "",
+            "abs": abstract[:320] + ("…" if len(abstract) > 320 else ""),
+        }
+
+    def add(e):
+        """File one entry; returns its first-release date (None if skipped before parsing)."""
+        base = base_id(e.findtext("a:id", "", NS))
+        if not base or base in seen:
+            return None
+        seen.add(base)
+        if base in cur["exclude"]:
+            return None
+        published = clean(e.findtext("a:published", "", NS))[:10]
+        if not published:
+            return None          # an arXiv error entry (e.g. a mistyped id)
+        pub = dt.date.fromisoformat(published)
+        p = paper_of(e, base, pub)
+        if p:
+            papers.append(p)
+        return pub
+
+    papers, seen, start, reached = [], set(), 0, False
     while start < MAX_RESULTS:
         root = fetch(query, start)
         entries = root.findall("a:entry", NS)
         if not entries:
+            reached = True           # arXiv has nothing older: the whole window is covered
             break
         oldest = None
         for e in entries:
-            base = base_id(e.findtext("a:id", "", NS))
-            if not base or base in seen:
-                continue
-            seen.add(base)
-            if base in cur["exclude"]:
-                continue
-            pub = dt.date.fromisoformat(clean(e.findtext("a:published", "", NS))[:10])
-            oldest = pub if oldest is None or pub < oldest else oldest
-            if pub < since:
-                continue
-            m_id = re.match(r"(\d{2})(\d{2})\.", base)
-            if m_id and (2000 + int(m_id.group(1)), int(m_id.group(2))) < (since.year, since.month):
-                continue  # an old paper resurfacing (new version / cross-list): first releases only
-            title = clean(e.findtext("a:title", "", NS))
-            abstract = clean(e.findtext("a:summary", "", NS))
-            text = f"{title} {abstract}"
-            sc = score(title, abstract)
-            forced = base in cur["include"]       # hand-confirmed: skip the relevance gates
-            if not sc and forced:
-                sc = {order[-1]: 2}
-            if not forced and (not sc or (f["require_rx"] and not f["require_rx"].search(text))
-                               or (f["exclude_rx"] and f["exclude_rx"].search(text))):
-                continue
-            tags = rank(sc)
-            ts = topic_strength(title, abstract)
-            main_sub = by_sid[tags[0]]
-            if not forced and (ts < max(topic_min, int(main_sub.get("topic_min", 0)))
-                               or (main_sub.get("strong") and f["strong_rx"] and not f["strong_rx"].search(text))):
-                continue  # not about the topic, or a broad subfield without the strong cue
-            prim = e.find("arxiv:primary_category", NS)
-            authors = [clean(a.findtext("a:name", "", NS)) for a in e.findall("a:author", NS)]
-            comment = clean(e.findtext("arxiv:comment", "", NS))
-            jref = clean(e.findtext("arxiv:journal_ref", "", NS))
-            code = CODE_RX.search(f"{abstract} {comment}")
-            app_rx = f["application_rx"]
-            papers.append({
-                "id": base, "title": title,
-                "authors": authors[:4] + (["et al."] if len(authors) > 4 else []),
-                "date": pub.isoformat(),
-                "cat": prim.get("term") if prim is not None else "",
-                "tags": tags,                      # tags[0] is the main subfield
-                "bench": bool(BENCH_TITLE.search(title) or BENCH_ABS.search(abstract)),
-                "watch": bool(watch_rx and any(watch_rx.fullmatch(a) for a in authors)),
-                "pick": ((cur["picks"][base] or True) if base in cur["picks"] else None),   # note text, or true
-                "app": bool(app_rx and app_rx.search(title) and not BENCH_TITLE.search(title)) and not forced,
-                "report": bool(RELEASE.search(title)),
-                "_sc": sc[tags[0]],
-                "venue": venue_of(comment, jref),
-                "code": code.group(0).rstrip(".,);") if code else "",
-                "abs": abstract[:320] + ("…" if len(abstract) > 320 else ""),
-            })
+            pub = add(e)
+            if pub and (oldest is None or pub < oldest):
+                oldest = pub
         print(f"  fetched {start}–{start + len(entries)}; oldest {oldest}", file=sys.stderr)
         if oldest and oldest < since:
+            reached = True
             break
         start += PAGE
         time.sleep(3.5)  # arXiv asks for ≥3 s between calls
+    if not reached:
+        print(f"  WARNING: stopped at the {MAX_RESULTS}-result cap before reaching {since}; the oldest weeks are "
+              f"incomplete and their trends understate the field — narrow [arxiv] queries or lower [map] weeks",
+              file=sys.stderr)
+
+    # notes.toml include: papers the query never returned are fetched by id
+    missing = sorted(cur["include"] - seen)
+    if missing:
+        try:
+            for e in arxiv_get({"id_list": ",".join(missing), "max_results": len(missing)}).findall("a:entry", NS):
+                add(e)
+        except Exception as e:
+            print(f"  include lookup failed ({e})", file=sys.stderr)
 
     if not papers:
         mc.fail("no papers matched in the last %d weeks — loosen [arxiv] queries or [filter] topic" % weeks)
