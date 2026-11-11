@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="{{ site.Language.LanguageCode | default "en" }}">
+  <head>
+    {{ partial "head.html" . }}
+  </head>
+  <body class="kind-{{ .Kind }} section-survey">
+    <a class="skip" href="#content">Skip to content</a>
+    <div class="sheet">
+      <header class="site-header">
+        {{ partial "header.html" . }}
+      </header>
+      <main id="content" class="container">
+        {{ block "main" . }}{{ end }}
+      </main>
+      <footer class="site-footer">
+        {{ partial "footer.html" . }}
+      </footer>
+    </div>
+    {{ partial "scripts.html" . }}
+  </body>
+</html>

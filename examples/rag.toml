@@ -1,0 +1,85 @@
+# An example map: retrieval-augmented generation. Copy it over map.toml to use it.
+[map]
+title = "Retrieval-Augmented Generation: A Living Map"
+description = "A daily-updated map of retrieval-augmented generation research."
+intro = "What the RAG community has been working on over the last six months, filed into subfields by keyword rules and refreshed every morning from arXiv."
+author = ""
+author_url = ""
+weeks = 26
+
+[arxiv]
+categories = ["cs.CL", "cs.IR", "cs.AI", "cs.LG"]
+queries = ['abs:"retrieval-augmented"', 'abs:"retrieval augmented"', 'ti:RAG', 'abs:"GraphRAG"', 'abs:"retrieval-augmented generation"']
+
+[filter]
+topic_min = 2
+topic = ['retrieval[- ]augmented', '\bRAG\b', 'graphrag', 'retriev\w+ (and|then) generat\w+']
+exclude = ['\brag(s|ged)?\b doll', 'red[- ]amber[- ]green']
+
+[[subfield]]
+id = "graph"
+name = "Graphs & Knowledge Bases"
+short = "Graphs"
+desc = "Knowledge graphs, GraphRAG and structured stores as the retrieval layer."
+match = ['graph ?rag', 'knowledge graphs?', 'graph[- ]based retriev\w+', 'entity graphs?', 'knowledge bases?']
+
+[[subfield]]
+id = "agentic"
+name = "Agentic & Iterative RAG"
+short = "Agentic"
+desc = "Retrieval inside a reasoning loop: multi-hop, query planning, search agents."
+match = ['agentic', '\bagents?\b', 'multi[- ]hop', 'iterative retriev\w+', 'search agents?', 'deep research', 'query (planning|decomposition)', 'reinforcement learning']
+
+[[subfield]]
+id = "multimodal"
+name = "Multimodal RAG"
+short = "Multimodal"
+desc = "Retrieving images, video, tables and document pages, not only text."
+match = ['multimodal', 'multi[- ]modal', 'visual', '\bimages?\b', '\bvideos?\b', 'document pages?', 'tables?']
+
+[[subfield]]
+id = "eval"
+name = "Evaluation & Faithfulness"
+short = "Evaluation"
+desc = "Benchmarks, hallucination, attribution and faithfulness to the retrieved context."
+match = ['benchmark\w*', 'evaluat\w+', 'hallucinat\w+', 'faithful\w*', 'attribution', 'citations?', 'groundedness']
+
+[[subfield]]
+id = "retriever"
+name = "Retrievers & Indexing"
+short = "Retrievers"
+desc = "Embedding models, rerankers, chunking and the index itself."
+match = ['retrievers?', 'rerank\w*', 'embedding models?', 'dense retriev\w+', 'chunk\w*', 'index\w*', 'hybrid search', 'sparse retriev\w+']
+
+[[subfield]]
+id = "efficiency"
+name = "Efficiency & Long Context"
+short = "Efficiency"
+desc = "Compression, caching and the trade-off with long-context models."
+match = ['compress\w*', 'kv[- ]cache', '\bcach\w+', 'latency', 'long[- ]context', 'efficien\w+', 'pruning']
+
+[[subfield]]
+id = "general"
+name = "RAG Systems & Applications"
+short = "Systems"
+desc = "End-to-end RAG pipelines and domain systems — the catch-all."
+weight = 0.6
+match = ['retrieval[- ]augmented', '\bRAG\b']
+
+[terms]
+field = ["rag", "retrieval", "retrieval-augmented", "generation", "augmented", "llm", "language"]
+
+[cards]
+tasks = [
+  "open-domain question answering = Open QA", "multi-hop question answering = Multi-hop QA", "domain-specific QA (medical, legal, finance…) = Domain QA",
+  "conversational / dialogue = Dialogue", "summarisation / report generation = Summarisation", "code generation = Code",
+  "fact checking / attribution = Fact checking", "recommendation = Recommendation", "multimodal question answering = Multimodal QA",
+]
+methods = [
+  "dense retrieval = Dense retrieval", "sparse / lexical retrieval = Sparse retrieval", "reranking = Reranking", "knowledge graph = Graphs",
+  "query rewriting / decomposition = Query rewriting", "agent with tool use = Agents", "reinforcement learning = RL",
+  "fine-tuning the generator = Generator tuning", "fine-tuning the retriever = Retriever tuning", "context compression = Compression",
+  "chunking / indexing strategy = Chunking", "self-reflection / verification = Verification", "prompting = Prompting", "memory module = Memory",
+]
+rows = 10
+cols = 8

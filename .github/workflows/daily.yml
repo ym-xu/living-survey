@@ -1,0 +1,94 @@
+name: Daily map
+
+on:
+  schedule:
+    - cron: "0 6 * * *"     # every morning, 06:00 UTC
+  workflow_dispatch:        # "Run workflow" button in the Actions tab
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write            # only to keep the schedule alive (see the last step before Build)
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.150.1"
+          extended: true
+
+      # The data is rebuilt every morning and never committed. The last good copy is
+      # kept in the Actions cache, so an arXiv outage just means yesterday's map.
+      - name: Restore yesterday's data
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/survey.json
+            data/survey_cards.json
+            scripts/.cache
+          key: map-${{ github.run_id }}
+          restore-keys: map-
+
+      - name: Fetch papers from arXiv
+        run: python3 scripts/fetch.py
+        env:
+          S2_API_KEY: ${{ secrets.S2_API_KEY }}       # optional: Semantic Scholar rate limit
+
+      - name: Paper cards (Figure 4)
+        continue-on-error: true                     # a failed card run never blocks the page
+        run: python3 scripts/cards.py
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}     # optional; without it Figure 4 keeps the cards it has
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}      # optional repository variables, default DeepSeek
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+
+      - name: Save today's data
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/survey.json
+            data/survey_cards.json
+            scripts/.cache
+          key: map-${{ github.run_id }}
+
+      # GitHub pauses scheduled workflows after 60 days without a commit.
+      # Re-enabling the workflow through the API (no commit needed) keeps it running.
+      - name: Keep the daily schedule alive
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/daily.yml/enable"
+
+      - name: Build
+        run: hugo --minify -b "${{ steps.pages.outputs.base_url }}/"
+        env:
+          HUGO_PARAMS_REPO: ${{ github.server_url }}/${{ github.repository }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

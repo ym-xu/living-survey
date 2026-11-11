@@ -1,0 +1,271 @@
+# ============================================================================
+#  notes.toml — the hand-written layer on top of the automatic map. Optional:
+#  delete this file and the page simply goes without these parts.
+#
+#  Corrections (exclude / include) and pins take effect on the next daily build.
+#  Overviews, key references and benchmarks are shown as written; keep them to
+#  paradigms and open problems (no leaderboard numbers, which go stale in weeks).
+#  Set reviewed = true once you've read and edited them; until then the page
+#  labels them as a draft. Subfield ids are the ones in map.toml.
+# ============================================================================
+
+reviewed = false
+updated = "2026-11-11"
+
+# ---- Papers that matched the keyword rules but aren't document understanding ----
+exclude = [
+  { id = "2610.41328", why = "whole-slide pathology images ('slides')" },
+  { id = "2609.25386", why = "footwear outsole impressions" },
+  { id = "2609.32117", why = "handwriting leaked through phone motion sensors" },
+  { id = "2611.13711", why = "video overlay removal" },
+  { id = "2611.06089", why = "STARE: scene-text retrieval for robots / everyday objects" },
+  { id = "2610.28836", why = "Sketch2Sim: hand-drawn circuit analysis" },
+  { id = "2610.34094", why = "temporal causal reasoning, not documents" },
+  { id = "2608.06221", why = "robot handwriting trajectories" },
+]
+
+# ---- Papers to keep even though the automatic relevance gate drops them ----
+include = [
+  { id = "2609.15800", why = "Navigating Sparse Evidence: agentic visual RAG" },
+  { id = "2606.01613", why = "TechRAG: multimodal agentic RAG over technical documents" },
+  { id = "2610.39301", why = "Youtu-Parsing-Omni: omni-modal document parsing" },
+]
+
+# ---- Representative papers per subfield, shown on its card instead of the newest ----
+# Keys are subfield ids: ocr docvqa rag agents longdoc layout parsing tables charts kie historical imaging
+# The first slot shows a pinned paper ("picked"); the automatic rule fills the
+# second ("recent"). These pins are suggestions drawn from each subfield's own
+# recent papers — replace them with your own picks.
+
+[featured]
+ocr        = ["2610.11818"]   # From Pixels to Structure: lightweight VLMs for document OCR (ICDAR 2026)
+historical = ["2609.35473"]   # HTR lives in the high-pixel variance subspace (NeurIPS 2026)
+rag        = ["2610.23929"]   # Unbalanced optimal transport for visual document retrieval (ECCV 2026)
+agents     = ["2610.21327"]   # DocPilot: agent orchestration for long visual documents
+charts     = ["2609.38781"]   # ChartDensity-Bench: numerical data reconstruction from charts
+docvqa     = ["2609.20574"]   # DocAttriBench: answer grounding in DocVQA
+parsing    = ["2610.20335"]   # Read, Parse, Describe: unified document parsing (NeurIPS 2026)
+longdoc    = ["2610.20964"]   # VELD-QA: visual evidence grounding in long documents
+layout     = ["2610.18238"]   # Heading hierarchy reconstruction for long documents
+tables     = ["2610.17937"]   # MERIT: evidence reasoning over image tables
+imaging    = ["2609.33758"]   # ENet-GP: unified document image restoration
+kie        = ["2609.20110"]   # Calibrated confidence for straight-through document extraction
+
+# ---- Editor's picks: highlighted on the page with a short note, and filterable ----
+# [[picks]]
+# id = "2611.xxxxx"
+# note = "Why this one matters (e.g. why it matters)."
+
+[overview]
+ocr = "Recognition moved from detect-then-recognise pipelines with CTC or attention decoders to end-to-end transformer readers ([TrOCR](https://arxiv.org/abs/2109.10282), [PARSeq](https://arxiv.org/abs/2207.06966)), and then to unified models that read whole pages ([GOT](https://arxiv.org/abs/2409.01704)). Open problems: low-resource scripts, very dense or degraded pages, and judging OCR by what it does to downstream reasoning rather than character error alone."
+docvqa = "Layout-aware pre-trained encoders ([LayoutLM](https://arxiv.org/abs/1912.13318)) gave way to OCR-free encoder–decoders ([Donut](https://arxiv.org/abs/2111.15664), [Pix2Struct](https://arxiv.org/abs/2210.03347)) and then to general vision-language models tuned on document data, evaluated on benchmarks such as [DocVQA](https://arxiv.org/abs/2007.00398). Open problems: grounding answers in visible evidence, hallucination on dense text, and the cost of high-resolution inputs."
+rag = "Embedding page images directly — late interaction over VLM patch embeddings ([ColPali](https://arxiv.org/abs/2407.01449)) or screenshot embeddings ([DSE](https://arxiv.org/abs/2406.11251)) — outperforms OCR-then-text indexing on visual-document retrieval benchmarks such as ViDoRe, and retrieved pages are increasingly handed straight to a VLM ([VisRAG](https://arxiv.org/abs/2410.10594), [M3DocRAG](https://arxiv.org/abs/2411.04952)). Open problems: region-level rather than page-level evidence, the storage cost of multi-vector indexes, and cross-lingual collections."
+agents = "The newest strand: models that plan, call tools (search, crop, OCR, code) and iterate over long documents or whole collections ([ViDoRAG](https://arxiv.org/abs/2502.18017), [MDocAgent](https://arxiv.org/abs/2503.13964)), increasingly trained with reinforcement learning ([VRAG-RL](https://arxiv.org/abs/2505.22019)). Open problems: cost and latency, faithful evidence trails, and evaluating the search trajectory rather than only the final answer ([MADQA](https://arxiv.org/abs/2603.12180))."
+longdoc = "Questions moved from one page to many: multi-page QA ([MP-DocVQA](https://arxiv.org/abs/2212.05935), [DUDE](https://arxiv.org/abs/2305.08455)), slide decks ([SlideVQA](https://arxiv.org/abs/2301.04883)) and long PDFs ([MMLongBench-Doc](https://arxiv.org/abs/2407.01523)). Methods combine page retrieval, hierarchical encoders and long-context VLMs. Open problems: reasoning across pages, pointing to where the answer is, and recognising unanswerable questions."
+layout = "Usually framed as object detection on large annotated corpora ([PubLayNet](https://arxiv.org/abs/1908.07836), [DocLayNet](https://arxiv.org/abs/2206.01062)), with reading order handled by separate models ([LayoutReader](https://arxiv.org/abs/2108.11591)). Open problems: robustness across domains and languages, and logical structure — headings, hierarchy, captions — beyond bounding boxes."
+parsing = "End-to-end page-to-markup models ([Nougat](https://arxiv.org/abs/2308.13418), [GOT](https://arxiv.org/abs/2409.01704)) now compete with modular pipelines, and benchmarks such as [OmniDocBench](https://arxiv.org/abs/2412.07626) compare the two. Open problems: getting text, tables, formulas and reading order right in one pass, and staying faithful on unusual layouts."
+tables = "Table detection and structure recognition on large datasets ([PubTabNet](https://arxiv.org/abs/1911.10683), [PubTables-1M](https://arxiv.org/abs/2110.00061)) with image-to-structure models ([TableFormer](https://arxiv.org/abs/2203.01017)), increasingly joined by table question answering with VLMs. Open problems: spanning and nested cells, tables split across pages, and numeric reasoning."
+charts = "Question answering and reasoning over plots and charts ([PlotQA](https://arxiv.org/abs/1909.00997), [ChartQA](https://arxiv.org/abs/2203.10244)) and infographics ([InfographicVQA](https://arxiv.org/abs/2104.12756)), plus chart-to-data and chart-to-code derendering with VLMs. Open problems: exact value extraction, misleading visualisations, and dense scientific figures."
+kie = "Entity labelling and linking on forms and receipts ([FUNSD](https://arxiv.org/abs/1905.13538), [SROIE](https://arxiv.org/abs/2103.10213)) with layout-aware models ([LayoutLMv2](https://arxiv.org/abs/2012.14740)), now often generative extraction by VLMs. Open problems: generalising to unseen schemas, long and multi-page forms, and privacy-sensitive data."
+historical = "Handwritten text-line and full-page recognition with transformer models ([Kang et al.](https://arxiv.org/abs/2005.13044)), on long-standing datasets such as [IAM](https://doi.org/10.1007/s100320200071), together with layout analysis and reading order for archives and newspapers. Open problems: low-resource scripts and languages, scarce transcriptions, and end-to-end page-level recognition."
+imaging = "Document image restoration — dewarping and illumination correction ([DocTr](https://arxiv.org/abs/2110.12942)), shadow removal ([DocDeshadower](https://arxiv.org/abs/2307.15318)), binarisation — and, more recently, generating text-rich images and detecting tampering. Open problems: judging restoration by downstream OCR, realistic synthetic data, and robustness to forgery."
+
+# Key references (mostly before the tracking window; not all are old) — [label, arXiv id]
+[classics]
+ocr        = [["TrOCR", "2109.10282"], ["PARSeq", "2207.06966"], ["OCR-2.0 (GOT)", "2409.01704"]]
+docvqa     = [["LayoutLM", "1912.13318"], ["LayoutLMv3", "2204.08387"], ["Donut", "2111.15664"], ["Pix2Struct", "2210.03347"], ["UDOP", "2212.02623"]]
+rag        = [["ColPali", "2407.01449"], ["DSE", "2406.11251"], ["VisRAG", "2410.10594"], ["M3DocRAG", "2411.04952"]]
+agents     = [["ViDoRAG", "2502.18017"], ["MDocAgent", "2503.13964"], ["VRAG-RL", "2505.22019"]]
+longdoc    = [["Hi-VT5 / MP-DocVQA", "2212.05935"], ["DUDE", "2305.08455"], ["SlideVQA", "2301.04883"], ["MMLongBench-Doc", "2407.01523"]]
+layout     = [["PubLayNet", "1908.07836"], ["DocLayNet", "2206.01062"], ["LayoutReader", "2108.11591"]]
+parsing    = [["Nougat", "2308.13418"], ["KOSMOS-2.5", "2309.11419"], ["OmniDocBench", "2412.07626"]]
+tables     = [["PubTabNet", "1911.10683"], ["PubTables-1M", "2110.00061"], ["TableFormer", "2203.01017"]]
+charts     = [["PlotQA", "1909.00997"], ["ChartQA", "2203.10244"], ["InfographicVQA", "2104.12756"]]
+kie        = [["FUNSD", "1905.13538"], ["SROIE", "2103.10213"], ["LayoutLMv2", "2012.14740"]]
+historical = [["Non-recurrent HTR", "2005.13044"], ["Rethinking text-line recognition", "2104.07787"]]
+imaging    = [["DocTr", "2110.12942"], ["DocDeshadower", "2307.15318"]]
+
+# Core benchmarks — the usual reference points per subfield.
+# `id` = arXiv id, or `url` for one that isn't on arXiv; `mine = true` marks my own.
+
+[[benchmarks]]
+name = "OCRBench"
+id = "2305.07895"
+year = 2023
+sub = "ocr"
+task = "OCR abilities of large multimodal models (text recognition, VQA, KIE)"
+metric = "Score"
+
+[[benchmarks]]
+name = "OCRBench v2"
+id = "2501.00321"
+year = 2024
+sub = "ocr"
+task = "Visual text localisation and reasoning, extended task set"
+metric = "Score"
+
+[[benchmarks]]
+name = "IAM"
+url = "https://doi.org/10.1007/s100320200071"
+year = 2002
+sub = "historical"
+task = "Offline handwritten English text recognition"
+metric = "CER, WER"
+
+[[benchmarks]]
+name = "DocVQA"
+id = "2007.00398"
+year = 2020
+sub = "docvqa"
+task = "Question answering on single document pages"
+metric = "ANLS"
+
+[[benchmarks]]
+name = "ViDoRe"
+id = "2407.01449"
+year = 2024
+sub = "rag"
+task = "Retrieving document pages for a query (introduced with ColPali)"
+metric = "nDCG@5"
+
+[[benchmarks]]
+name = "ViDoRe V2"
+id = "2505.17166"
+year = 2025
+sub = "rag"
+task = "Harder, more realistic visual retrieval queries"
+metric = "nDCG@5"
+
+[[benchmarks]]
+name = "ViDoRe V3"
+id = "2601.08620"
+year = 2026
+sub = "rag"
+task = "Retrieval-augmented generation on complex real-world documents"
+metric = "Retrieval and answer quality"
+
+[[benchmarks]]
+name = "MMDocIR"
+id = "2501.08828"
+year = 2025
+sub = "rag"
+task = "Page- and layout-level retrieval in long documents"
+metric = "Recall@k"
+
+[[benchmarks]]
+name = "M3DocVQA"
+id = "2411.04952"
+year = 2024
+sub = "rag"
+task = "Open-domain QA over many PDFs (introduced with M3DocRAG)"
+metric = "Accuracy, F1"
+
+[[benchmarks]]
+name = "MADQA"
+id = "2603.12180"
+year = 2026
+sub = "agents"
+task = "Agentic QA over document collections, scoring the whole search trajectory"
+metric = "Accuracy, trajectory effort"
+mine = true
+
+[[benchmarks]]
+name = "InfographicVQA"
+id = "2104.12756"
+year = 2021
+sub = "charts"
+task = "Question answering on infographics"
+metric = "ANLS"
+
+[[benchmarks]]
+name = "ChartQA"
+id = "2203.10244"
+year = 2022
+sub = "charts"
+task = "Visual and logical questions about charts"
+metric = "Relaxed accuracy"
+
+[[benchmarks]]
+name = "MP-DocVQA"
+id = "2212.05935"
+year = 2022
+sub = "longdoc"
+task = "Question answering over multi-page documents"
+metric = "ANLS, page accuracy"
+
+[[benchmarks]]
+name = "DUDE"
+id = "2305.08455"
+year = 2023
+sub = "longdoc"
+task = "Multi-page, multi-domain document QA"
+metric = "ANLS, calibration"
+
+[[benchmarks]]
+name = "SlideVQA"
+id = "2301.04883"
+year = 2023
+sub = "longdoc"
+task = "Question answering over slide decks"
+metric = "EM, F1"
+
+[[benchmarks]]
+name = "MMLongBench-Doc"
+id = "2407.01523"
+year = 2024
+sub = "longdoc"
+task = "Questions over long PDFs with charts and tables"
+metric = "Accuracy, F1"
+
+[[benchmarks]]
+name = "LongDocURL"
+id = "2412.18424"
+year = 2024
+sub = "longdoc"
+task = "Understanding, reasoning and locating evidence in long documents"
+metric = "Accuracy"
+
+[[benchmarks]]
+name = "DocLayNet"
+id = "2206.01062"
+year = 2022
+sub = "layout"
+task = "Layout detection across diverse document types"
+metric = "mAP"
+
+[[benchmarks]]
+name = "PubTabNet"
+id = "1911.10683"
+year = 2019
+sub = "tables"
+task = "Image-to-structure table recognition"
+metric = "TEDS"
+
+[[benchmarks]]
+name = "OmniDocBench"
+id = "2412.07626"
+year = 2024
+sub = "parsing"
+task = "End-to-end PDF page parsing (text, tables, formulas, order)"
+metric = "Edit distance, TEDS"
+
+[[benchmarks]]
+name = "FUNSD"
+id = "1905.13538"
+year = 2019
+sub = "kie"
+task = "Entity labelling and linking in scanned forms"
+metric = "F1"
+
+[[benchmarks]]
+name = "SROIE"
+id = "2103.10213"
+year = 2019
+sub = "kie"
+task = "Receipt OCR and key information extraction"
+metric = "F1"
+
+# A short note on where my own research sits on this map (shown under the abstract).
+[my_work]
+subfields = ["agents", "longdoc", "rag"]
+text = "My work sits where **agents** meet **long documents**, with a foot in retrieval. [MADQA](https://ym-xu.github.io/publications/icml-madqa/) (ICML 2026, oral) is a benchmark for agentic question answering over document collections that scores the whole search trajectory, not just the answer — and shows agents reach human accuracy only by working about five times harder. [AdaNav](https://ym-xu.github.io/publications/icdar-adanav/) (ICDAR 2026) builds a multimodal document tree and navigates it at query-adaptive granularity instead of relying on an embedding retriever."

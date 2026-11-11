@@ -1,0 +1,24 @@
+{{- $m := site.Data.map.map -}}
+{{- $title := $m.title | default site.Title -}}
+{{- $desc := $m.description | default "" | plainify | htmlUnescape -}}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ $title }}</title>
+<meta name="description" content="{{ $desc }}" />
+<link rel="canonical" href="{{ .Permalink }}" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ebebeb" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101010" />
+{{- /* Apply a saved theme before first paint (no light flash in dark mode). */}}
+<script>(function(){var d=document.documentElement;d.classList.add('js');try{var t=localStorage.getItem('prefers-color-scheme');if(t==='dark'||t==='light')d.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="preload" href="{{ "fonts/texgyrepagella-regular.woff2" | relURL }}" as="font" type="font/woff2" crossorigin />
+{{- $css := resources.Get "css/site.css" | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}" />
+<link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml" />
+<link rel="alternate" type="application/rss+xml" href="{{ "index.xml" | absURL }}" title="{{ $title }}" />
+<meta property="og:site_name" content="{{ $title }}" />
+<meta property="og:title" content="{{ $title }}" />
+<meta property="og:description" content="{{ $desc }}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="{{ .Permalink }}" />
+<meta name="twitter:card" content="summary" />

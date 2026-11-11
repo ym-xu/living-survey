@@ -1,0 +1,30 @@
+# Site settings. What the map tracks lives in map.toml; you rarely need to touch this file.
+# baseURL is set by the GitHub Action (your Pages address); this one is for local previews.
+baseURL = "http://localhost:1313/"
+languageCode = "en"
+title = "Living Survey"
+disableKinds = ["taxonomy", "term", "section", "page", "sitemap"]
+enableRobotsTXT = true
+
+[outputs]
+  home = ["HTML", "RSS"]
+
+[markup.goldmark.renderer]
+  unsafe = true
+
+[params]
+  # Set automatically in the GitHub Action (HUGO_PARAMS_REPO), used for "edit / fork" links.
+  repo = "https://github.com/ym-xu/living-survey"
+  plausibleDomain = ""
+
+# map.toml and notes.toml are read by the page as data, next to the generated files.
+[module]
+  [[module.mounts]]
+    source = "data"
+    target = "data"
+  [[module.mounts]]
+    source = "map.toml"
+    target = "data/map.toml"
+  [[module.mounts]]
+    source = "notes.toml"
+    target = "data/notes.toml"

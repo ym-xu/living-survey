@@ -1,0 +1,51 @@
+# A starting point: copy this over map.toml, fill in the five TODOs, push.
+# The rules are regular expressions; each list entry is one alternative.
+# Tip: run `python3 scripts/fetch.py` locally and look at data/survey.json to tune them.
+
+[map]
+title = "TODO: Your Field: A Living Map"
+description = "A daily-updated map of TODO research."
+intro = "What the TODO community has been working on lately, compiled every morning from arXiv."
+author = ""              # your name, shown in the header and footer
+author_url = ""          # e.g. your homepage
+weeks = 26
+watch = []               # authors to mark, e.g. ["Ada Lovelace"]
+
+[arxiv]
+categories = ["cs.CL", "cs.LG"]                       # TODO: arXiv categories
+queries = ['abs:"TODO phrase"', 'ti:TODO']            # TODO: wide net; the rules below narrow it
+
+[filter]
+topic = ['TODO phrase', '\bTODO\b']                   # TODO: what makes a paper about your field
+topic_min = 2
+# exclude = ['false friend']                          # optional
+# application = ['\b(clinical|legal)\b']              # optional: "X applied to a domain", listed but not counted
+
+# One [[subfield]] per area. Put specific ones first and the broadest last.
+[[subfield]]
+id = "methods"
+name = "Methods"
+desc = "New models and training methods."
+match = ['\bmodel\b', 'training']
+
+[[subfield]]
+id = "eval"
+name = "Benchmarks & Evaluation"
+short = "Evaluation"
+desc = "Datasets, benchmarks and evaluation protocols."
+match = ['benchmark\w*', 'dataset', 'evaluat\w+']
+
+[[subfield]]
+id = "general"
+name = "General"
+desc = "Everything else in the field."
+weight = 0.6
+match = ['TODO phrase']
+
+[terms]
+field = []               # your field's everyday words, so they never show up as "rising"
+
+# Figure 4 (methods x tasks) needs an LLM key (README). Delete [cards] to switch it off.
+[cards]
+tasks = ["task one = Task 1", "task two = Task 2"]
+methods = ["reinforcement learning = RL", "fine-tuning = Fine-tuning", "prompting = Prompting", "synthetic data generation = Synthetic data"]

@@ -1,0 +1,243 @@
+# ============================================================================
+#  map.toml — what this living survey tracks. The only file you must edit.
+#
+#  Every morning a GitHub Action asks arXiv for recent papers matching [arxiv],
+#  files each into the subfields below by keyword rules, and rebuilds the page.
+#  Rules are regular expressions (case-insensitive). A list of strings is joined
+#  with "|", so each entry is one alternative — keep them short and readable.
+#  Optional hand-written content (overviews, benchmarks, picks, corrections)
+#  lives in notes.toml; delete that file to start without it.
+# ============================================================================
+
+[map]
+title = "Document Understanding: A Living Map"
+description = "A daily-updated map of document understanding research — layout, OCR, tables, charts, document QA, long documents, retrieval and agents."
+# The abstract at the top of the page (markdown).
+intro = """
+A map of the field I work in. The paper counts are compiled automatically every morning from arXiv and filed into subfields by transparent rules, with a hand-kept list of corrections; the overviews, classic papers and benchmarks are written by hand. It shows where the community's attention is going — it is not a full survey, and not a curated reading list.
+"""
+author = "Yiming Xu"
+author_url = "https://ym-xu.github.io/"
+weeks = 26                      # history window: charts and the paper list
+# Papers by these authors get a "followed" mark and their own filter.
+watch = ["Yiming Xu", "Dimosthenis Karatzas", "Ernest Valveny"]
+
+[arxiv]
+categories = ["cs.CV", "cs.CL", "cs.IR", "cs.AI", "cs.LG", "cs.DL", "cs.MM"]
+# arXiv search terms, OR-ed together (ti: title, abs: abstract; quote phrases).
+# Cast a wide net here — the rules below decide what really belongs.
+queries = [
+  'ti:document', 'ti:documents', 'abs:"document understanding"', 'abs:"document image"',
+  'abs:"document analysis"', 'abs:"visually rich"', 'abs:"visually-rich"', 'abs:"visual document"',
+  'abs:"visual documents"', 'abs:"multimodal document"', 'abs:"text-rich"', 'abs:DocVQA',
+  'abs:"document question answering"', 'abs:"document VQA"', 'abs:"OCR-free"', 'ti:OCR',
+  'abs:"optical character recognition"', 'abs:"layout analysis"', 'abs:"document layout"',
+  'abs:"reading order"', 'abs:"table recognition"', 'abs:"table structure"', 'abs:"chart understanding"',
+  'abs:"chart question answering"', 'abs:ChartQA', 'ti:chart', 'ti:charts', 'ti:infographic',
+  'ti:handwritten', 'abs:"handwritten text"', 'abs:"key information extraction"', 'abs:"form understanding"',
+  'abs:"document parsing"', 'abs:"PDF parsing"', 'ti:PDF', 'ti:PDFs', 'abs:"multi-page"', 'abs:"scanned"',
+  'abs:"scene text"', 'abs:"text recognition"', 'abs:"historical documents"', 'abs:"math formula recognition"',
+]
+
+# ---- Is a paper in the field at all? -------------------------------------
+# topic: what the field is about. Scored like a subfield (title x3, abstract x1,
+#   capped at 4) and must reach topic_min. Required.
+# require: optional, must appear somewhere (here: the paper must look visual).
+# strong: optional, a stricter cue that subfields marked `strong = true` need.
+# exclude: optional, false friends to drop.
+# application: optional, "X applied to domain Y" papers — listed, not counted.
+[filter]
+topic_min = 2
+topic = [
+  '\bdocuments?\b', '\bpdfs?\b', '\bocr\b', 'optical character', 'document images?', 'text recognition', 'scene text', 'text spotting',
+  'handwrit\w*', 'manuscripts?', '\bcharts?\b', 'infographics?', 'chartqa', 'docvqa', '\binvoices?\b', '\breceipts?\b', 'slide decks?',
+  'presentation slides', 'text[- ]rich', 'visually[- ]rich', 'historical (newspapers?|records|archives?)', 'table (recognition|structure|images?)',
+  'forms? understanding', 'page[- ]level', 'multi[- ]page', 'scanned (documents?|pages?|forms?|records)',
+  'text[- ]lines?', 'glyphs?', 'characters? recognition', 'logograph\w*', 'reading order', 'layout analysis', 'document layout',
+  'digiti[sz]\w* (of )?(books?|documents?|archives?|dictionar\w+|records|newspapers?)', 'visual text (rendering|generation)', 'text rendering',
+]
+require = [
+  'document images?', 'visually[- ]rich', 'visual(ly)? (rich )?documents?', 'multimodal documents?', '\bocr\b', 'optical character', 'scann\w+',
+  '\blayouts?\b', 'page images?', 'document pages?', '\bpdfs?\b', '\btables?\b', '\bcharts?\b', 'infographic', 'handwrit', 'manuscript', '\bforms?\b',
+  'invoice', 'receipt', 'scene text', 'text (recognition|spotting|detection)', 'slide decks?', 'presentation slides', 'lecture slides', 'text[- ]rich', 'docvqa',
+  'screenshots?', 'scientific figures?', 'document (vlm|mllm|lvlm|understanding|parsing|analysis|intelligence)', 'historical (documents?|newspapers?)',
+]
+strong = [
+  'document images?', 'visually[- ]rich', 'visual(ly)? (rich )?documents?', 'multimodal', 'page images?', 'screenshots?', '\bocr\b', 'scann\w+',
+  '\blayouts?\b', '\bcharts?\b', 'infographic', 'handwrit\w*', 'manuscripts?', '\bpdfs?\b', 'vision[- ]language', '\bvlms?\b', '\bmllms?\b', '\blvlms?\b',
+  '\bimages?\b', '\bvisual\b', 'figures?', 'slide decks?', 'presentation slides', '\bpixels?\b',
+]
+exclude = [
+  'channel charting', 'flow ?chart(ing)? of (the )?(study|patients)',
+  'whole[- ]slide', 'histopatholog\w*', 'patholog\w+ (slides?|images?)', 'gigapixel', '\bWSIs?\b', 'cross[- ]hospital',
+  'footwear', 'outsole', 'shoe ?prints?', 'motion sensors?', 'accelerometer', 'gyroscope', 'side[- ]channel', 'keystroke',
+  'robot(ic)? (learning|grasp\w*|manipulation)', 'everyday objects', 'robot learning',
+  'video (text |subtitle |caption )?overlay', 'overlay removal', 'subtitle removal',
+  'circuit (analysis|diagrams?|simulation)', 'causal topology', 'navigational charts?', 'nautical charts?', 'maritime',
+]
+application = [
+  '\b(medical|clinical|healthcare|health ?care|patients?|radiolog\w+|hospitals?|legal|regulator\w*)\b',
+  '\bcompliance[- ](scored|check\w*|verification|review|documents?)\b',
+  '\b(grading|graders?|exams?|examinations?|students?|education\w*|classroom|lectures?)\b',
+  '\b(biometric\w*|signature verification|forensic\w*|insurance|agricultur\w+|archaeolog\w+|pottery|accounting)\b',
+]
+
+# ---- Subfields -------------------------------------------------------------
+# A paper gets every subfield whose rule scores >= 2 (a title hit, or two
+# mentions in the abstract); the strongest is its main subject. Ties go to the
+# subfield listed first, so put specific subfields first and the broadest last.
+#   id      short slug (stays fixed: it is used in links and notes.toml)
+#   short   label for tight spots (pairs, tables)
+#   weight  optional, < 1 makes a catch-all subfield lose the "main subject" vote
+#   strong  optional, the paper also needs the [filter] strong cue
+#   topic_min  optional, a stricter topic score for this subfield
+[[subfield]]
+id = "tables"
+name = "Tables"
+short = "Tables"
+desc = "Table detection, structure recognition and table question answering."
+match = ['table (recognition|structure|detection|extraction|understanding|question|parsing|reasoning)', 'tabular images?', 'table images?', 'image tables?']
+
+[[subfield]]
+id = "charts"
+name = "Charts, Figures & Infographics"
+short = "Charts"
+desc = "Understanding and generating charts, plots, scientific figures and infographics."
+match = [
+  'chartqa', '\bcharts? (understanding|question|reasoning|qa|comprehension|summari\w*|generation|parsing|derendering|caption\w*|images?|data|benchmark|to[- ]code|editing)',
+  '(understand|reason|answer)\w* (over |about |on )?(scientific )?charts', 'infographics?', 'plot (understanding|question)',
+  'figure (understanding|question|captioning)', 'scientific figures?', 'diagram (understanding|question)',
+]
+
+[[subfield]]
+id = "kie"
+name = "Information Extraction & Forms"
+short = "Extraction"
+desc = "Key information extraction from forms, invoices, receipts and records."
+strong = true
+match = ['key information extraction', 'information extraction from (visually|documents|scanned)', 'form (understanding|parsing)', '\binvoices?\b', '\breceipts?\b', 'document (information |entity )?extraction']
+
+[[subfield]]
+id = "layout"
+name = "Layout & Reading Order"
+short = "Layout"
+desc = "Page structure: layout detection, reading order, logical structure."
+match = ['layout (analysis|detection|understanding|parsing|model)', 'page (object )?segmentation', 'reading order', 'document structure', 'logical structure', 'document layout', 'heading hierarch\w+']
+
+[[subfield]]
+id = "parsing"
+name = "Parsing & Conversion"
+short = "Parsing"
+desc = "Turning pages into structured text: PDF-to-Markdown, formulas, end-to-end parsers."
+match = [
+  'document parsing', 'pdf (parsing|extraction|to)', 'document conversion', 'to markdown', '\bmarkdown\b', 'latex (generation|conversion)',
+  'formula recognition', 'math(ematical)? expression recognition', 'end-to-end (document )?pars\w+', 'page[- ]to[- ](token|text|markdown)',
+]
+
+[[subfield]]
+id = "imaging"
+name = "Imaging & Generation"
+short = "Imaging"
+desc = "Document image processing and synthesis: dewarping, binarisation, layout and text generation."
+match = [
+  '(scene )?text (image )?(editing|removal|erasure|synthesis)', 'dewarp\w*', 'binari[sz]ation', 'document (image )?(enhancement|restoration|rectification|deblur\w*)',
+  'layout generation', 'document generation', 'text rendering', 'visual text generation', 'forgery', 'tamper\w*',
+]
+
+[[subfield]]
+id = "historical"
+name = "Handwriting & Historical"
+short = "Handwriting"
+desc = "Handwritten text, manuscripts, archives and historical newspapers."
+match = ['handwrit\w+', 'historical (documents?|manuscripts?|newspapers?)', 'manuscripts?', 'archival', '\bhtr\b', 'palaeograph\w*', 'paleograph\w*', 'palimpsest']
+
+[[subfield]]
+id = "ocr"
+name = "OCR & Text Recognition"
+short = "OCR"
+desc = "Reading the characters: printed, scene and multilingual text recognition and spotting."
+match = ['\bocr\b', 'optical character', 'text recognition', 'text spotting', 'scene text(?! (editing|removal|erasure|synthesis|generation|rendering))', 'character recognition', 'text line recognition']
+
+[[subfield]]
+id = "agents"
+name = "Agents & Reasoning"
+short = "Agents"
+desc = "Agents that read, navigate and reason across documents."
+strong = true
+topic_min = 3
+match = [
+  '\bagent(s|ic)?\b', 'multi[- ]agent', 'tool[- ](use|using|calling|augmented)', 'deep research', 'self[- ]evolving', '\bharness(es)?\b', 'navigat\w+', '\bplanner\b',
+  'evidence (seeking|search|acquisition|discovery|routing|threading|selection|navigation)', 'multi[- ]hop', 'working memory', 'memory[- ]guided', 'iterative (retrieval|reasoning)',
+]
+
+[[subfield]]
+id = "rag"
+name = "Retrieval & RAG"
+short = "Retrieval"
+desc = "Finding evidence in documents: visual retrieval, multimodal RAG, page search."
+strong = true
+match = [
+  '\bRAG\b', 'retrieval[- ]augmented', 'document (retrieval|search)', 'page retrieval', 'visual(ly)? (rich )?document (retrieval|search)', 'colpali',
+  'multimodal retriev\w*', 'retriev\w* (over|from|across) (long |multiple )?(documents|pages|pdfs)',
+]
+
+[[subfield]]
+id = "longdoc"
+name = "Long & Multi-page Documents"
+short = "Long documents"
+desc = "Documents beyond a single page: long PDFs, slide decks, collections."
+strong = true
+match = ['long[- ]documents?', 'multi[- ]page', 'multipage', 'long[- ]context document', 'book[- ]length', 'slide decks?', 'presentation slides', 'lecture slides', '\bpptx?\b', 'lengthy documents', 'document collections?', 'extra[- ]long']
+
+[[subfield]]
+id = "docvqa"
+name = "Document QA & VLMs"
+short = "Document QA"
+desc = "Vision-language models and question answering over document images."
+weight = 0.6
+match = [
+  'document (visual )?question answering', 'docvqa', 'document vqa', 'visually[- ]rich', 'document (vlm|mllm|lvlm|understanding model)s?', 'document understanding',
+  'text[- ]rich (image|document)s?', 'text[- ]centric', 'document intelligence', 'document ai\b', 'ocr[- ]free',
+]
+
+# ---- Rising terms ------------------------------------------------------------
+[terms]
+# The field's own vocabulary: always frequent, never a trend.
+field = ["ocr", "pdf", "document", "page", "text", "visual", "reading", "recognition", "understanding", "vision-language"]
+# Words too common in this field to start or end a phrase.
+stop = ["document", "documents", "understanding", "visually", "rich", "text", "image", "images"]
+# Words merged before counting (plurals are merged automatically).
+same = { agentic = "agent" }
+
+# ---- Paper cards and Figure 4 (needs an LLM key; see README) -----------------
+# A language model reads each abstract and picks what the paper proposes, for
+# which task, from these lists. "Long name = short label"; the short label is
+# what the matrix shows. Change the lists and the affected cards are redone.
+[cards]
+tasks = [
+  "document QA (single page) = Page QA", "multi-page / long-document QA = Long-doc QA", "document retrieval = Retrieval",
+  "retrieval-augmented generation = RAG", "layout analysis = Layout", "reading order / logical structure = Reading order",
+  "printed OCR = Printed OCR", "post-OCR correction / alignment = Post-OCR", "scene text recognition / spotting = Scene text",
+  "handwritten text recognition = HTR", "handwriting analysis (signatures, writers) = Writers / signatures",
+  "table recognition = Table recognition", "table QA / reasoning = Table QA", "chart / figure understanding = Charts",
+  "chart-to-data / chart-to-code = Chart-to-code", "infographic understanding = Infographics",
+  "key information extraction = Extraction", "document parsing / conversion = Parsing", "document classification = Classification",
+  "document image restoration = Restoration", "text-rich image generation / editing = Text-image generation",
+  "document agents / navigation = Doc agents", "answer grounding / attribution = Attribution",
+]
+methods = [
+  "vision-language model (general) = VLM", "OCR-free encoder-decoder = OCR-free model", "layout-aware text encoder = Layout-aware encoder",
+  "OCR pipeline + text model = OCR + text model", "dense single-vector retrieval = Dense retrieval",
+  "late interaction / multi-vector retrieval = Multi-vector retrieval", "reranking = Reranking",
+  "hierarchical / tree document representation = Tree / hierarchy", "graph representation = Graphs",
+  "agent with tool use = Tool-using agent", "multi-agent system = Multi-agent", "planning / navigation policy = Planning / navigation",
+  "reinforcement learning = RL", "chain-of-thought / test-time reasoning = Test-time reasoning",
+  "token pruning / visual compression = Token compression", "long-context modelling = Long context", "memory module = Memory",
+  "region-level grounding / evidence selection = Grounding / evidence", "synthetic data generation = Synthetic data",
+  "distillation = Distillation", "diffusion model = Diffusion", "mixture-of-experts = MoE",
+  "self-supervised pretraining = Self-supervised", "contrastive learning = Contrastive", "prompting / in-context learning = Prompting",
+  "fine-tuning (full or LoRA) = Fine-tuning", "efficient decoding / inference = Efficient inference",
+  "query expansion / rewriting = Query rewriting", "output verification / correction gate = Verification",
+]
+rows = 14        # methods shown in Figure 4
+cols = 10        # tasks shown in Figure 4

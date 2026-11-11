@@ -1,0 +1,26 @@
+{{- /* RSS for the survey: the newest papers, so the field can be followed in a feed reader. */ -}}
+{{- $d := site.Data.survey -}}
+{{- printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{ site.Data.map.map.title }}</title>
+    <link>{{ .Permalink }}</link>
+    <description>{{ site.Data.map.map.description }}</description>
+    <language>{{ site.Language.LanguageCode | default "en" }}</language>
+    <lastBuildDate>{{ now.UTC.Format "Mon, 02 Jan 2006 15:04:05 -0700" }}</lastBuildDate>
+    <atom:link href="{{ .Permalink }}index.xml" rel="self" type="application/rss+xml" />
+    {{- with $d }}
+    {{- range first 60 .papers }}
+    <item>
+      <title>{{ .title }}</title>
+      <link>https://arxiv.org/abs/{{ .id }}</link>
+      <guid isPermaLink="true">https://arxiv.org/abs/{{ .id }}</guid>
+      <pubDate>{{ (time .date).Format "Mon, 02 Jan 2006 15:04:05 -0700" }}</pubDate>
+      {{- range .tagnames }}
+      <category>{{ . }}</category>{{ end }}
+      <description>{{ printf "<p><b>%s</b>%s%s</p><p>%s</p>" (delimit .authors ", ") (cond (ne .venue "") (printf " · <i>%s</i>" .venue) "") (cond (ne .code "") (printf " · <a href=\"%s\">code</a>" .code) "") .abs | html }}</description>
+    </item>
+    {{- end }}
+    {{- end }}
+  </channel>
+</rss>

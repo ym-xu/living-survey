@@ -1,0 +1,10 @@
+# Hugo build output
+/public/
+/resources/
+.hugo_build.lock
+# Python
+__pycache__/
+# Generated every morning by the GitHub Action (kept in the Actions cache, not in git)
+data/survey.json
+scripts/.cache/
+.DS_Store
