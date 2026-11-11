@@ -43,6 +43,10 @@ jobs:
           key: map-${{ github.run_id }}
           restore-keys: map-
 
+      # A broken change must never reach the live map: yesterday's page stays up instead.
+      - name: Tests
+        run: python3 -m unittest discover -s tests
+
       - name: Fetch papers from arXiv
         run: python3 scripts/fetch.py
         env:
