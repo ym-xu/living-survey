@@ -52,7 +52,8 @@ hugo server                        # preview at http://localhost:1313
 
 - Look at which papers land where and adjust the `match` rules in `map.toml`.
 - If a whole family of false positives gets in, add a pattern to `[filter] exclude`.
-- For a single paper, add it to `exclude` or `include` in `notes.toml`.
+- For a single paper, add it to `exclude` or `include` in `notes.toml`. An included paper is fetched by id if the query misses it; give it `tag = "<subfield id>"` if no rule matches it.
+- If the log warns that the result cap was hit, the oldest weeks are incomplete: narrow `[arxiv] queries` or lower `[map] weeks`.
 - A broken regular expression stops the run with a message that names the rule.
 
 ## The two files

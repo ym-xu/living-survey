@@ -1,0 +1,29 @@
+name: Test
+
+# Every push and pull request. Agents may only merge or tag a green run of this.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"          # the oldest version we support (tomllib)
+      - name: Unit and end-to-end tests (arXiv faked, no network)
+        run: python3 -m unittest discover -s tests -v
+      - name: Scripts compile
+        run: python3 -m py_compile scripts/*.py
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.150.1"
+          extended: true
+      - name: Site builds before any data exists (a fresh fork's first run)
+        run: hugo --minify -d /tmp/site

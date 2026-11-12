@@ -25,6 +25,8 @@ exclude = [
 ]
 
 # ---- Papers to keep even though the automatic relevance gate drops them ----
+# Papers the arXiv query never returns are fetched by id. A paper that matches no
+# subfield rule is filed under the last subfield unless you give it one: tag = "rag".
 include = [
   { id = "2609.15800", why = "Navigating Sparse Evidence: agentic visual RAG" },
   { id = "2606.01613", why = "TechRAG: multimodal agentic RAG over technical documents" },

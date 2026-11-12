@@ -1,0 +1,35 @@
+# A tiny field for the tests: tables and charts. Kept small on purpose — the real
+# map.toml changes with the field, these rules must not.
+[map]
+title = "Test Field: A Living Map"
+weeks = 4
+watch = ["Ada Lovelace"]
+
+[arxiv]
+categories = ["cs.CV"]
+queries = ['ti:table', 'ti:chart']
+
+[filter]
+topic = ['\btables?\b', '\bcharts?\b']
+topic_min = 2
+exclude = ['periodic table']
+
+[[subfield]]
+id = "tables"
+name = "Tables"
+match = ['\btables?\b', 'table recognition']
+
+[[subfield]]
+id = "charts"
+name = "Charts"
+match = ['\bcharts?\b']
+
+[[subfield]]
+id = "general"
+name = "General"
+weight = 0.5
+match = ['\bdocuments?\b']
+
+[cards]
+tasks = ["table recognition = Tables", "chart question answering = ChartQA"]
+methods = ["reinforcement learning = RL", "synthetic data generation = Synthetic data"]
