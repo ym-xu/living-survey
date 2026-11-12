@@ -3,8 +3,6 @@
 title = "Retrieval-Augmented Generation: A Living Map"
 description = "A daily-updated map of retrieval-augmented generation research."
 intro = "What the RAG community has been working on over the last six months, filed into subfields by keyword rules and refreshed every morning from arXiv."
-author = ""
-author_url = ""
 weeks = 26
 
 [arxiv]

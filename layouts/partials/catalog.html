@@ -1,0 +1,71 @@
+{{- /* The catalog: every field on this site, and "my feed" — the subfields a viewer
+       follows. What they follow is kept in their browser (localStorage) and in the
+       address bar when they share it; it is never sent anywhere. */ -}}
+{{ $c := site.Data.catalog | default dict }}
+{{ $set := $c.settings | default dict }}
+<article class="survey catalog">
+  <header class="maketitle fx-title">
+    <h1>{{ $set.title | default site.Title }}</h1>
+    <p class="mt-author">{{ len ($c.fields | default slice) }} fields, each compiled automatically from arXiv every morning</p>
+  </header>
+
+  <div class="abstract fx-after">
+    {{ $set.intro | default "Pick the subfields you care about. New papers in them show up below every day, and every subfield has its own RSS feed." | markdownify }}
+  </div>
+
+  <div class="sections">
+    <section class="section reveal" id="my-feed">
+      <div class="section-head"><h2>My feed</h2></div>
+      <p class="muted" id="feed-empty">Tick subfields below to follow them. Your choice stays in this browser: nothing about you is sent to us or anyone else.</p>
+      <div id="feed" hidden>
+        <p class="since" id="feed-summary"></p>
+        <div class="cards one plist" id="feed-list"></div>
+        <p class="sub-note">Papers from the last {{ $c.recent_days | default 14 }} days in the subfields you follow, newest first.
+          <button class="linkish" type="button" id="feed-share">Copy a link to this selection</button> to open it on another device.
+          Feeds for a reader or RSS-to-email: <span id="feed-rss"></span></p>
+      </div>
+    </section>
+
+    <section class="section reveal" id="fields">
+      <div class="section-head"><h2>Fields</h2></div>
+      <div class="subs">
+        {{ range $f := $c.fields }}
+          <article class="subentry spot field" id="field-{{ $f.id }}">
+            <div class="sside">
+              <h3 class="sname">{{ if $f.broken }}{{ $f.title }}{{ else }}<a href="{{ $f.path | relURL }}">{{ $f.title }}</a>{{ end }}</h3>
+              {{ if $f.broken }}
+              <p class="sstat">temporarily unavailable</p>
+              {{ else if $f.updated }}
+              <p class="sstat">{{ $f.total }} papers · {{ $f.last4w }} in 4 wk</p>
+              <p class="sstat">updated {{ $f.updated }}</p>
+              {{ else }}
+              <p class="sstat">no data yet</p>
+              {{ end }}
+            </div>
+            <div class="smain">
+              <p class="ov">{{ $f.description }}</p>
+              {{ if not $f.broken }}
+              <ul class="follow">
+                {{ range $s := $f.subfields }}
+                <li>
+                  <label><input type="checkbox" data-follow="{{ $f.id }}/{{ $s.id }}" data-name="{{ $s.name }}" data-rss="{{ printf "%sfeeds/%s.xml" $f.path $s.id | absURL }}">
+                    {{ $s.name }}</label>
+                  <span class="muted">{{ $s.count }}{{ if ne $s.trend nil }} · {{ if gt $s.trend 0 }}<span class="up">+{{ $s.trend }}%</span>{{ else if lt $s.trend 0 }}{{ $s.trend }}%{{ else }}±0%{{ end }}{{ end }}</span>
+                  <a class="muted" href="{{ printf "%sfeeds/%s.xml" $f.path $s.id | relURL }}">RSS</a>
+                </li>
+                {{ end }}
+              </ul>
+              {{ end }}
+            </div>
+          </article>
+        {{ end }}
+      </div>
+      {{ with site.Params.repo }}<p class="sub-note">Missing your field? <a href="{{ . }}/issues/new?template=new-field.yml" rel="noopener">Ask for it</a> — say what it covers and name a few papers.</p>{{ end }}
+    </section>
+  </div>
+</article>
+{{- /* Recent papers per field, for "my feed". Public arXiv metadata only. */}}
+{{ $recent := dict }}
+{{ range $c.fields }}{{ $recent = merge $recent (dict .id (dict "path" (.path | relURL) "title" .title "papers" .recent)) }}{{ end }}
+<script type="application/json" id="catalog-data">{{ $recent | jsonify | safeJS }}</script>
+<script type="application/json" id="catalog-legacy">{{ $set.legacy | default "" | jsonify | safeJS }}</script>

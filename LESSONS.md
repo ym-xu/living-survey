@@ -3,6 +3,18 @@
 What had to be fixed, so it isn't fixed again. Newest first. Format: the rule, why,
 evidence, how often it has been seen. At "Seen 3×" a rule moves into `AGENTS.md`.
 
+## Changing a cache's path list is a data migration
+
+`actions/cache` ties a cache to its exact `path:` list. Adding `data/fields` to the list
+in PR #2 meant the next run would restore nothing: every paper card made since the last
+commit would be redone with paid LLM calls, and the old files sat at paths nothing read.
+Found by an independent review, not by the tests. When a workflow's cached paths
+change, add a one-off restore with the old list and move the files, and use a new key
+prefix.
+
+Evidence: PR #2 review, 2026-11-12.
+Seen 1×.
+
 ## Set test environment variables before any script module is imported
 
 `scripts/mapconfig.py` reads `LS_MAP`, `LS_NOTES` and `LS_DATA` once, at import. A test

@@ -1,0 +1,35 @@
+name: Ask for a new field
+description: A research area you'd like a daily map of. An agent drafts it; a maintainer reviews it before it goes live.
+title: "New field: "
+labels: ["new-field"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fields are public: everyone can follow them, so describe the **area**, not your own unpublished idea.
+  - type: input
+    id: name
+    attributes:
+      label: Field name
+      placeholder: e.g. Speech translation
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: What belongs in it, and what doesn't
+      description: A few sentences. Mention look-alike topics that should be left out.
+    validations:
+      required: true
+  - type: textarea
+    id: papers
+    attributes:
+      label: 3–5 typical recent papers (arXiv links or ids)
+      description: They are used to check that the rules catch the right papers.
+    validations:
+      required: true
+  - type: textarea
+    id: subfields
+    attributes:
+      label: Subfields you'd expect (optional)
+      placeholder: "e.g. cascaded systems · end-to-end models · simultaneous translation · evaluation"

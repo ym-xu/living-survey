@@ -1,12 +1,15 @@
 {{ define "main" }}
+{{ if site.Params.catalog }}{{ partial "catalog.html" . }}{{ else }}
 {{ $d := site.Data.survey }}
 {{ $notes := site.Data.notes }}
 {{ $m := site.Data.map.map | default dict }}
+{{/* followed authors come from map.toml as it is now, never from the saved data, which can be older */}}
+{{ $watch := $m.watch | default slice }}
 {{ $repo := site.Params.repo }}
 <article class="survey">
   <header class="maketitle fx-title">
     <h1>{{ $m.title }}</h1>
-    <p class="mt-author">Compiled automatically from arXiv every morning{{ with $notes }}{{ if .overview }}, with editor’s notes{{ end }}{{ end }}{{ with $m.author }} · {{ with $m.author_url }}<a href="{{ . }}">{{ $m.author }}</a>{{ else }}{{ . }}{{ end }}{{ end }}</p>
+    <p class="mt-author">Compiled automatically from arXiv every morning{{ with $notes }}{{ if .overview }}, with editor’s notes{{ end }}{{ end }}</p>
     {{ with $d }}<p class="mt-date">Last updated {{ .updated }} · {{ .total }} research papers over {{ .weeks }} weeks{{ with .applications }} (+ {{ . }} applications){{ end }} · <a href="{{ "index.xml" | relURL }}">follow via RSS</a></p>{{ end }}
   </header>
 
@@ -15,14 +18,6 @@
     {{ $m.intro | default $m.description | markdownify }}
   </div>
 
-  {{ $mine := slice }}
-  {{ with $notes }}{{ with .my_work }}
-    {{ $mine = .subfields | default slice }}
-    <aside class="mywork fx-after2" id="my-work">
-      <p class="mywork-h">Where my work fits</p>
-      <p>{{ .text | markdownify }}</p>
-    </aside>
-  {{ end }}{{ end }}
 
   {{ if not (and $d $d.weekly) }}
     <p class="muted">The survey data hasn’t been generated yet — run <code>python3 scripts/fetch.py</code>, or wait for the first daily run of the GitHub Action.</p>
@@ -54,7 +49,7 @@
           {{ range $i, $s := $d.subfields }}
             <button class="brow" type="button" role="listitem" data-filter="{{ $s.id }}" style="--i: {{ $i }}" title="{{ $s.desc }}"
                     aria-label="{{ $s.name }}: main subject of {{ $s.primary }} papers, touched by {{ $s.count }}; {{ $s.last4w }} in the last four weeks against {{ $s.prev4w }} — show them">
-              <span class="bname">{{ $s.name }}{{ if in $mine $s.id }}<span class="minedot" title="where my work sits">●</span>{{ end }}</span>
+              <span class="bname">{{ $s.name }}</span>
               <span class="bar"><span class="bar-in">
                 <span class="p" style="width: {{ printf "%.2f" (div (mul $s.primary 100.0) $maxC) }}%"></span><span class="s" style="width: {{ printf "%.2f" (div (mul (sub $s.count $s.primary) 100.0) $maxC) }}%"></span>
               </span></span>
@@ -63,7 +58,7 @@
             </button>
           {{ end }}
         </div>
-        <figcaption><b>Figure 1:</b> Subfields over the last {{ $d.weeks }} weeks. Dark: papers whose <i>main</i> subject is the subfield (these add up to {{ $d.total }}); light: papers that also touch it. The right column gives raw counts for the last four weeks against the four before; a percentage is added only when both are at least {{ $minT }}, since smaller counts swing a lot on a handful of papers. Click a row to list its papers.{{ $bursts := where $d.subfields "burst" "!=" nil }}{{ with $bursts }} Bursts: {{ range $k, $b := . }}{{ if $k }}; {{ end }}in {{ $b.name }}, {{ $b.burst.n }} of the {{ $b.burst.of }} earlier papers came out in one week (week of {{ dateFormat "Jan 2" $b.burst.week }}), so part of its drop is that spike passing{{ end }}.{{ end }}{{ if $mine }} <span class="minedot">●</span> marks where my own work sits.{{ end }}</figcaption>
+        <figcaption><b>Figure 1:</b> Subfields over the last {{ $d.weeks }} weeks. Dark: papers whose <i>main</i> subject is the subfield (these add up to {{ $d.total }}); light: papers that also touch it. The right column gives raw counts for the last four weeks against the four before; a percentage is added only when both are at least {{ $minT }}, since smaller counts swing a lot on a handful of papers. Click a row to list its papers.{{ $bursts := where $d.subfields "burst" "!=" nil }}{{ with $bursts }} Bursts: {{ range $k, $b := . }}{{ if $k }}; {{ end }}in {{ $b.name }}, {{ $b.burst.n }} of the {{ $b.burst.of }} earlier papers came out in one week (week of {{ dateFormat "Jan 2" $b.burst.week }}), so part of its drop is that spike passing{{ end }}.{{ end }}</figcaption>
       </figure>
 
       {{ $n := len $d.weekly }}
@@ -111,9 +106,10 @@
           {{ with $notes }}{{ with index .overview $s.id }}{{ $ov = . }}{{ end }}{{ with index .classics $s.id }}{{ $cl = . }}{{ end }}{{ end }}
           <article class="subentry spot" id="sub-{{ $s.id }}">
             <div class="sside">
-              <h3 class="sname"><button type="button" data-filter="{{ $s.id }}" title="List its papers">{{ $s.name }}</button>{{ if in $mine $s.id }}<span class="minedot" title="where my work sits">●</span>{{ end }}</h3>
+              <h3 class="sname"><button type="button" data-filter="{{ $s.id }}" title="List its papers">{{ $s.name }}</button></h3>
               <p class="sstat">{{ $s.primary }} main · {{ $s.count }} in all</p>
               <p class="sstat">{{ $s.last4w }} vs {{ $s.prev4w }} in 4 wk{{ if ne $s.trend nil }} · {{ if gt $s.trend 0 }}<span class="up">+{{ $s.trend }}%</span>{{ else if lt $s.trend 0 }}{{ $s.trend }}%{{ else }}±0%{{ end }}{{ end }}</p>
+              <p class="sstat"><a href="{{ printf "feeds/%s.xml" $s.id | relURL }}" title="New {{ $s.name }} papers in a feed reader (or RSS-to-email)">RSS</a></p>
               <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ delimit $pts " " }}"></polyline></svg>
             </div>
             <div class="smain">
@@ -141,7 +137,7 @@
             {{ with $rows }}
               <tbody>
                 <tr class="grp"><th colspan="4">{{ index $short $sid }}</th></tr>
-                {{ range . }}<tr><td><a href="{{ with .url }}{{ . }}{{ else }}https://arxiv.org/abs/{{ .id }}{{ end }}" rel="noopener">{{ .name }}</a>{{ if .mine }}<sup class="mine" title="I'm a co-author">*</sup>{{ end }}</td><td>{{ .year }}</td><td>{{ .task }}</td><td>{{ .metric }}</td></tr>{{ end }}
+                {{ range . }}<tr><td><a href="{{ with .url }}{{ . }}{{ else }}https://arxiv.org/abs/{{ .id }}{{ end }}" rel="noopener">{{ .name }}</a></td><td>{{ .year }}</td><td>{{ .task }}</td><td>{{ .metric }}</td></tr>{{ end }}
               </tbody>
             {{ end }}
           {{ end }}
@@ -258,7 +254,7 @@
           <button class="chip flag" type="button" data-flag="code" aria-pressed="false">with code</button>
           {{ if $d.applications }}<button class="chip flag" type="button" data-flag="app" aria-pressed="false" title="Papers that apply existing techniques to a domain task — listed, not counted in the figures">applications</button>{{ end }}
           {{ if $d.picks }}<button class="chip flag" type="button" data-flag="pick" aria-pressed="false">picks</button>{{ end }}
-          {{ if $d.watch }}<button class="chip flag" type="button" data-flag="watch" aria-pressed="false" title="{{ delimit $d.watch ", " }}">followed authors</button>{{ end }}
+          {{ if $watch }}<button class="chip flag" type="button" data-flag="watch" aria-pressed="false" title="{{ delimit $watch ", " }}">followed authors</button>{{ end }}
           <button class="chip flag" type="button" data-flag="fresh" aria-pressed="false" hidden>new to me</button>
         </div>
       </div>
@@ -272,12 +268,12 @@
           {{ $off := mod (add (int $t.Weekday) 6) 7 }}
           {{ $wk := ($t.AddDate 0 0 (int (sub 0 $off))).Format "2006-01-02" }}
           {{ if ne $wk $prevWk }}<h3 class="wk" data-wk="{{ $wk }}">Week of {{ dateFormat "January 2" $wk }}</h3>{{ $prevWk = $wk }}{{ end }}
-          <article class="card paper" data-wk="{{ $wk }}" data-tags="{{ delimit $p.tags " " }}" data-bench="{{ $p.bench }}" data-watch="{{ $p.watch }}" data-pick="{{ if $p.pick }}true{{ else }}false{{ end }}" data-app="{{ $p.app }}" data-venue="{{ if $p.venue }}true{{ else }}false{{ end }}" data-code="{{ if $p.code }}true{{ else }}false{{ end }}" data-date="{{ $p.date }}"{{ with $c }} data-mech="{{ delimit .mp " " }}" data-task="{{ delimit .t " " }}"{{ end }}>
+          <article class="card paper" data-wk="{{ $wk }}" data-tags="{{ delimit $p.tags " " }}" data-bench="{{ $p.bench }}" data-watch="{{ if and $watch $p.watch }}true{{ else }}false{{ end }}" data-pick="{{ if $p.pick }}true{{ else }}false{{ end }}" data-app="{{ $p.app }}" data-venue="{{ if $p.venue }}true{{ else }}false{{ end }}" data-code="{{ if $p.code }}true{{ else }}false{{ end }}" data-date="{{ $p.date }}"{{ with $c }} data-mech="{{ delimit .mp " " }}" data-task="{{ delimit .t " " }}"{{ end }}>
             <div class="card-kicker">
               <time datetime="{{ $p.date }}">{{ dateFormat "Jan 2, 2006" $p.date }}</time>
               <span>{{ $p.cat }}</span>
               {{ with $p.venue }}<span class="ve">{{ . }}</span>{{ end }}
-              <span class="push"><span class="badge fresh" hidden>new</span>{{ if $p.app }}<span class="badge">application</span>{{ end }}{{ if $p.report }}<span class="badge">release</span>{{ end }}{{ if $p.pick }}<span class="badge">pick</span>{{ end }}{{ if $p.watch }}<span class="badge">followed</span>{{ end }}{{ if $p.bench }}<span class="badge">benchmark</span>{{ end }}</span>
+              <span class="push"><span class="badge fresh" hidden>new</span>{{ if $p.app }}<span class="badge">application</span>{{ end }}{{ if $p.report }}<span class="badge">release</span>{{ end }}{{ if $p.pick }}<span class="badge">pick</span>{{ end }}{{ if and $watch $p.watch }}<span class="badge">followed</span>{{ end }}{{ if $p.bench }}<span class="badge">benchmark</span>{{ end }}</span>
             </div>
             <h3 class="card-title"><a class="stretch" href="https://arxiv.org/abs/{{ $p.id }}" rel="noopener">{{ $p.title }}</a></h3>
             <p class="card-au">{{ delimit $p.authors ", " }}</p>
@@ -301,7 +297,7 @@
       <div class="content">
         <p>Every morning (06:00 UTC) a GitHub Action asks the arXiv API for the last {{ $d.weeks }} weeks of papers in {{ delimit ($ax.categories | default slice) ", " " and " }} that match {{ len ($ax.queries | default slice) }} search terms. Only first releases count: a new version or cross-listing of an older paper is skipped.</p>
         <p>A paper has to be <i>about</i> the topic: a topic rule is scored (title three times, abstract once) and must reach a threshold, and a list of negative patterns drops the usual false friends. Each of the {{ len $d.subfields }} subfields is a keyword rule scored the same way; a paper gets every subfield it clearly matches, and the strongest one is its main subject.{{ with $d.applications }} Papers that apply existing techniques to a domain task are kept in the list as “applications” but left out of every figure.{{ end }} Each subfield shows representative papers: hand-picked ones (“picked”) and its own main-subject papers from the last eight weeks ranked by venue acceptance, citations and public code (“recent”).</p>
-        <p>Semantic Scholar adds author IDs (so namesakes stay apart), citation counts and venues. Every rule is in <a href="{{ $repo }}/blob/main/map.toml" rel="noopener"><code>map.toml</code></a>; hand corrections, picks and the editor’s notes are in <a href="{{ $repo }}/blob/main/notes.toml" rel="noopener"><code>notes.toml</code></a>.{{ with $cd }} Figure 4 comes from a card per paper: a language model ({{ delimit .models ", " }}) reads the title and abstract and picks the paper’s tasks and the methods it proposes or merely uses from fixed lists, quoting the abstract as evidence for every tag. A tag is kept only if its quote is found word for word in the abstract. Cards come only from public abstracts, so they share the abstract’s blind spots.{{ end }} It remains a rough instrument — a map of where attention goes, not a curated reading list.<sup><a href="#fn-arxiv">1</a></sup></p>
+        <p>Semantic Scholar adds author IDs (so namesakes stay apart), citation counts and venues. Every rule is in <a href="{{ $repo }}/blob/main/{{ site.Params.mapPath | default "map.toml" }}" rel="noopener"><code>map.toml</code></a>; hand corrections, picks and the editor’s notes are in <a href="{{ $repo }}/blob/main/{{ site.Params.notesPath | default "notes.toml" }}" rel="noopener"><code>notes.toml</code></a>.{{ with $cd }} Figure 4 comes from a card per paper: a language model ({{ delimit .models ", " }}) reads the title and abstract and picks the paper’s tasks and the methods it proposes or merely uses from fixed lists, quoting the abstract as evidence for every tag. A tag is kept only if its quote is found word for word in the abstract. Cards come only from public abstracts, so they share the abstract’s blind spots.{{ end }} It remains a rough instrument — a map of where attention goes, not a curated reading list.<sup><a href="#fn-arxiv">1</a></sup></p>
         <p>This page is built with <a href="https://github.com/ym-xu/living-survey" rel="noopener">living-survey</a>: fork it, describe your own field in one file, and GitHub keeps the map up to date for free.</p>
         <p id="fn-arxiv" class="fn"><sup>1</sup> Thank you to arXiv for use of its open access interoperability; author IDs, citations and venues from Semantic Scholar. Data window: {{ dateFormat "Jan 2, 2006" $d.since }} – {{ dateFormat "Jan 2, 2006" $d.today }}.</p>
       </div>
@@ -309,4 +305,5 @@
   </div>
   {{ end }}
 </article>
+{{ end }}
 {{ end }}

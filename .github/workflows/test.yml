@@ -17,13 +17,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"          # the oldest version we support (tomllib)
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.150.1"
+          extended: true          # before the tests: they build real pages
       - name: Unit and end-to-end tests (arXiv faked, no network)
         run: python3 -m unittest discover -s tests -v
       - name: Scripts compile
         run: python3 -m py_compile scripts/*.py
-      - uses: peaceiris/actions-hugo@v3
-        with:
-          hugo-version: "0.150.1"
-          extended: true
       - name: Site builds before any data exists (a fresh fork's first run)
-        run: hugo --minify -d /tmp/site
+        run: python3 scripts/build.py build --base-url https://example.org/site/ --out /tmp/site

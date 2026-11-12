@@ -1,11 +1,20 @@
 {{- /* RSS for the survey: the newest papers, so the field can be followed in a feed reader. */ -}}
 {{- $d := site.Data.survey -}}
+{{- $title := site.Data.map.map.title -}}{{- $desc := site.Data.map.map.description -}}
+{{- if site.Params.catalog -}}
+  {{- /* the catalog: the newest papers of every field together */ -}}
+  {{- $c := site.Data.catalog | default dict -}}
+  {{- $title = ($c.settings | default dict).title | default site.Title -}}{{- $desc = "New papers in every field on this site." -}}
+  {{- $all := slice -}}
+  {{- range $c.fields }}{{ $fname := index (split .title ":") 0 }}{{ range .recent }}{{ $all = $all | append (merge . (dict "tagnames" (slice $fname) "abs" "" "code" "")) }}{{ end }}{{ end -}}
+  {{- $d = dict "papers" (sort $all "date" "desc") -}}
+{{- end -}}
 {{- printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>{{ site.Data.map.map.title }}</title>
+    <title>{{ $title }}</title>
     <link>{{ .Permalink }}</link>
-    <description>{{ site.Data.map.map.description }}</description>
+    <description>{{ $desc }}</description>
     <language>{{ site.Language.LanguageCode | default "en" }}</language>
     <lastBuildDate>{{ now.UTC.Format "Mon, 02 Jan 2006 15:04:05 -0700" }}</lastBuildDate>
     <atom:link href="{{ .Permalink }}index.xml" rel="self" type="application/rss+xml" />
