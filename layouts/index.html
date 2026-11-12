@@ -3,6 +3,8 @@
 {{ $d := site.Data.survey }}
 {{ $notes := site.Data.notes }}
 {{ $m := site.Data.map.map | default dict }}
+{{/* followed authors come from map.toml as it is now, never from the saved data, which can be older */}}
+{{ $watch := $m.watch | default slice }}
 {{ $repo := site.Params.repo }}
 <article class="survey">
   <header class="maketitle fx-title">
@@ -252,7 +254,7 @@
           <button class="chip flag" type="button" data-flag="code" aria-pressed="false">with code</button>
           {{ if $d.applications }}<button class="chip flag" type="button" data-flag="app" aria-pressed="false" title="Papers that apply existing techniques to a domain task — listed, not counted in the figures">applications</button>{{ end }}
           {{ if $d.picks }}<button class="chip flag" type="button" data-flag="pick" aria-pressed="false">picks</button>{{ end }}
-          {{ if $d.watch }}<button class="chip flag" type="button" data-flag="watch" aria-pressed="false" title="{{ delimit $d.watch ", " }}">followed authors</button>{{ end }}
+          {{ if $watch }}<button class="chip flag" type="button" data-flag="watch" aria-pressed="false" title="{{ delimit $watch ", " }}">followed authors</button>{{ end }}
           <button class="chip flag" type="button" data-flag="fresh" aria-pressed="false" hidden>new to me</button>
         </div>
       </div>
@@ -266,12 +268,12 @@
           {{ $off := mod (add (int $t.Weekday) 6) 7 }}
           {{ $wk := ($t.AddDate 0 0 (int (sub 0 $off))).Format "2006-01-02" }}
           {{ if ne $wk $prevWk }}<h3 class="wk" data-wk="{{ $wk }}">Week of {{ dateFormat "January 2" $wk }}</h3>{{ $prevWk = $wk }}{{ end }}
-          <article class="card paper" data-wk="{{ $wk }}" data-tags="{{ delimit $p.tags " " }}" data-bench="{{ $p.bench }}" data-watch="{{ $p.watch }}" data-pick="{{ if $p.pick }}true{{ else }}false{{ end }}" data-app="{{ $p.app }}" data-venue="{{ if $p.venue }}true{{ else }}false{{ end }}" data-code="{{ if $p.code }}true{{ else }}false{{ end }}" data-date="{{ $p.date }}"{{ with $c }} data-mech="{{ delimit .mp " " }}" data-task="{{ delimit .t " " }}"{{ end }}>
+          <article class="card paper" data-wk="{{ $wk }}" data-tags="{{ delimit $p.tags " " }}" data-bench="{{ $p.bench }}" data-watch="{{ if and $watch $p.watch }}true{{ else }}false{{ end }}" data-pick="{{ if $p.pick }}true{{ else }}false{{ end }}" data-app="{{ $p.app }}" data-venue="{{ if $p.venue }}true{{ else }}false{{ end }}" data-code="{{ if $p.code }}true{{ else }}false{{ end }}" data-date="{{ $p.date }}"{{ with $c }} data-mech="{{ delimit .mp " " }}" data-task="{{ delimit .t " " }}"{{ end }}>
             <div class="card-kicker">
               <time datetime="{{ $p.date }}">{{ dateFormat "Jan 2, 2006" $p.date }}</time>
               <span>{{ $p.cat }}</span>
               {{ with $p.venue }}<span class="ve">{{ . }}</span>{{ end }}
-              <span class="push"><span class="badge fresh" hidden>new</span>{{ if $p.app }}<span class="badge">application</span>{{ end }}{{ if $p.report }}<span class="badge">release</span>{{ end }}{{ if $p.pick }}<span class="badge">pick</span>{{ end }}{{ if $p.watch }}<span class="badge">followed</span>{{ end }}{{ if $p.bench }}<span class="badge">benchmark</span>{{ end }}</span>
+              <span class="push"><span class="badge fresh" hidden>new</span>{{ if $p.app }}<span class="badge">application</span>{{ end }}{{ if $p.report }}<span class="badge">release</span>{{ end }}{{ if $p.pick }}<span class="badge">pick</span>{{ end }}{{ if and $watch $p.watch }}<span class="badge">followed</span>{{ end }}{{ if $p.bench }}<span class="badge">benchmark</span>{{ end }}</span>
             </div>
             <h3 class="card-title"><a class="stretch" href="https://arxiv.org/abs/{{ $p.id }}" rel="noopener">{{ $p.title }}</a></h3>
             <p class="card-au">{{ delimit $p.authors ", " }}</p>

@@ -170,3 +170,25 @@ class BuildTest(unittest.TestCase):
         self.write("old/index.html", "")                                # an earlier build: cleared
         S.clear_output(os.path.join(self.root, "old"))
         self.assertFalse(os.path.exists(os.path.join(self.root, "old")))
+
+    def test_followed_authors_come_from_map_not_saved_data(self):
+        # yesterday's survey.json still carries a watch list and flags; map.toml now has none
+        old = json.loads(self.survey)
+        old["watch"] = ["Grace Hopper", "Ada Lovelace"]
+        self.assertTrue(any(p["watch"] for p in old["papers"]))
+        self.write("map.toml", self.map.replace('watch = ["Ada Lovelace"]', "watch = []"))
+        self.write("data/survey.json", json.dumps(old))
+        S.build("https://x.org/site/", self.public, self.root)
+        page = self.read("index.html")
+        self.assertNotIn("Grace Hopper", page)
+        self.assertNotIn("data-flag=watch", page)
+        self.assertNotIn("data-watch=true", page)
+        self.assertNotIn(">followed<", page)
+
+    def test_followed_authors_shown_when_map_lists_them(self):
+        self.write("map.toml", self.map)
+        self.write("data/survey.json", self.survey)
+        S.build("https://x.org/site/", self.public, self.root)
+        page = self.read("index.html")
+        self.assertIn("data-flag=watch", page)
+        self.assertIn("data-watch=true", page)
