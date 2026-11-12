@@ -32,8 +32,10 @@
         {{ range $f := $c.fields }}
           <article class="subentry spot field" id="field-{{ $f.id }}">
             <div class="sside">
-              <h3 class="sname"><a href="{{ $f.path | relURL }}">{{ $f.title }}</a></h3>
-              {{ if $f.updated }}
+              <h3 class="sname">{{ if $f.broken }}{{ $f.title }}{{ else }}<a href="{{ $f.path | relURL }}">{{ $f.title }}</a>{{ end }}</h3>
+              {{ if $f.broken }}
+              <p class="sstat">temporarily unavailable</p>
+              {{ else if $f.updated }}
               <p class="sstat">{{ $f.total }} papers · {{ $f.last4w }} in 4 wk</p>
               <p class="sstat">updated {{ $f.updated }}</p>
               {{ else }}
@@ -42,6 +44,7 @@
             </div>
             <div class="smain">
               <p class="ov">{{ $f.description }}</p>
+              {{ if not $f.broken }}
               <ul class="follow">
                 {{ range $s := $f.subfields }}
                 <li>
@@ -52,6 +55,7 @@
                 </li>
                 {{ end }}
               </ul>
+              {{ end }}
             </div>
           </article>
         {{ end }}

@@ -20,6 +20,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      fetch: ${{ steps.fetch.outcome }}
+      broken: ${{ steps.build.outputs.broken }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +37,7 @@ jobs:
       # The data is rebuilt every morning and never committed. The last good copy is
       # kept in the Actions cache, so an arXiv outage just means yesterday's map.
       - name: Restore yesterday's data
+        id: restore
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -41,16 +45,42 @@ jobs:
             data/survey_cards.json
             data/fields
             scripts/.cache
+          key: fields-${{ github.run_id }}
+          restore-keys: fields-
+
+      # One-off migration. A cache is tied to its exact path list, so the caches saved
+      # before fields/ existed (key map-) only restore with the old list. Without this
+      # the first run would start cold and redo every card made since the last commit.
+      - name: Restore data saved before fields/ (first run after the move only)
+        if: steps.restore.outputs.cache-matched-key == ''
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/survey.json
+            data/survey_cards.json
+            scripts/.cache
           key: map-${{ github.run_id }}
           restore-keys: map-
+
+      - name: Move single-map data into its field
+        run: |
+          f=data/fields/document-understanding
+          if [ -d fields/document-understanding ]; then
+            mkdir -p "$f"
+            for x in survey.json survey_cards.json; do
+              if [ -f "data/$x" ]; then mv -f "data/$x" "$f/$x" && echo "moved data/$x -> $f/"; fi
+            done
+          fi
 
       # A broken change must never reach the live map: yesterday's page stays up instead.
       - name: Tests
         run: python3 -m unittest discover -s tests
 
-      # Every field in fields/ (or the single map.toml). A broken map.toml fails its own
-      # field only: it is flagged in the run, and its page keeps yesterday's data.
+      # Every field in fields/ (or the single map.toml). A field whose map.toml is broken
+      # keeps yesterday's data; if it can't even be built it is left out of the site.
+      # Either way the other fields still deploy, and the last job turns the run red.
       - name: Fetch papers from arXiv
+        id: fetch
         continue-on-error: true
         run: python3 scripts/build.py fetch
         env:
@@ -72,7 +102,7 @@ jobs:
             data/survey_cards.json
             data/fields
             scripts/.cache
-          key: map-${{ github.run_id }}
+          key: fields-${{ github.run_id }}
 
       # GitHub pauses scheduled workflows after 60 days without a commit.
       # Re-enabling the workflow through the API (no commit needed) keeps it running.
@@ -84,6 +114,7 @@ jobs:
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/daily.yml/enable"
 
       - name: Build
+        id: build
         run: python3 scripts/build.py build --base-url "${{ steps.pages.outputs.base_url }}/"
         env:
           HUGO_PARAMS_REPO: ${{ github.server_url }}/${{ github.repository }}
@@ -101,3 +132,19 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # After the deploy, so working fields are never held back: fail the run (GitHub then
+  # emails the owner) when a field's fetch failed or a field was left out of the site.
+  check:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every field fetched and built
+        env:
+          FETCH: ${{ needs.build.outputs.fetch }}
+          BROKEN: ${{ needs.build.outputs.broken }}
+        run: |
+          ok=1
+          if [ "$FETCH" != "success" ]; then echo "::error::fetch failed for at least one field (see the build job)"; ok=0; fi
+          if [ -n "$BROKEN" ]; then echo "::error::left out of the site: $BROKEN"; ok=0; fi
+          [ "$ok" = 1 ]

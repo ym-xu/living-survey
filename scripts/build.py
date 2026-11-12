@@ -166,33 +166,79 @@ def hugo_config(tmp, name, base_url, publish, data_dir, map_path=None, notes_pat
 
 
 def hugo(*args):
-    r = subprocess.run(["hugo", "--minify", "--quiet", *args], cwd=ROOT)
-    if r.returncode:
-        sys.exit(f"hugo failed ({' '.join(args)})")
+    """Run Hugo from the repository (layouts, assets, hugo.toml). True if it worked."""
+    return subprocess.run(["hugo", "--minify", "--quiet", *args], cwd=ROOT).returncode == 0
 
 
-def build(base_url, public):
+def clear_output(public):
+    """Empty the output directory, but only one that is clearly an earlier build:
+    never the repository or a folder above it, never a non-empty folder without a page."""
+    real, repo, home = os.path.realpath(public), os.path.realpath(ROOT), os.path.realpath(os.path.expanduser("~"))
+    if real in (repo, home, os.path.sep) or repo.startswith(real + os.sep):
+        sys.exit(f"refusing to clear {public}: it is (or contains) the repository or your home folder — pick another --out")
+    if not os.path.isdir(real):
+        return
+    if os.listdir(real) and not os.path.isfile(os.path.join(real, "index.html")):
+        sys.exit(f"refusing to clear {public}: it is not empty and does not look like an earlier build (no index.html)")
+    shutil.rmtree(real)
+
+
+def broken_toml(*paths):
+    """The first file among these that exists but is not valid TOML, with the reason."""
+    for path in paths:
+        try:
+            with open(path, "rb") as fh:
+                tomllib.load(fh)
+        except FileNotFoundError:
+            continue
+        except tomllib.TOMLDecodeError as e:
+            return f"{os.path.basename(path)} is not valid TOML: {e}"
+    return None
+
+
+def build(base_url, public, root=ROOT):
+    """Build every field, then the catalog. Returns the ids of fields that could not be
+    built: with several fields a broken one is left out (and marked in the catalog) so the
+    others still deploy; a single map that cannot be built stops the run."""
     base_url = base_url.rstrip("/") + "/"
-    fs = fields()
-    if os.path.isdir(public):
-        shutil.rmtree(public)
+    fs = fields(root)
+    clear_output(public)
+    broken = []
     with tempfile.TemporaryDirectory() as tmp:
         for f in fs:
             out = os.path.join(public, f["out"])
-            cfg = hugo_config(tmp, f["id"] or "map", base_url + f["out"], out, f["data"], f["map"], f["notes"],
-                              params={"mapPath": os.path.relpath(f["map"], ROOT), "notesPath": os.path.relpath(f["notes"], ROOT),
-                                      "catalogURL": base_url if f["id"] else ""})
-            hugo("--config", f"hugo.toml,{cfg}")
+            why = broken_toml(f["map"], f["notes"])
+            if not why:
+                cfg = hugo_config(tmp, f["id"] or "map", base_url + f["out"], out, f["data"], f["map"], f["notes"],
+                                  params={"mapPath": os.path.relpath(f["map"], root), "notesPath": os.path.relpath(f["notes"], root),
+                                          "catalogURL": base_url if f["id"] else ""})
+                if not hugo("--config", f"hugo.toml,{cfg}"):
+                    why = "hugo failed (its message is above)"
+            if why:
+                if not f["id"]:
+                    sys.exit(f"cannot build the map: {why}")
+                broken.append(f["id"])
+                shutil.rmtree(out, ignore_errors=True)
+                print(f"::error title={f['src']}::left out of the site: {why}", file=sys.stderr)
+                continue
             n = write_feeds(f, out, base_url)
             print(f"  built {f['out'] or '/'} ({n} subfield feeds)", file=sys.stderr)
         if fs[0]["id"]:                                  # many fields: the catalog at the root
             cdir = os.path.join(tmp, "catalog-data")
             os.makedirs(cdir)
+            cat = catalog_data(root)
+            for c in cat["fields"]:
+                c["broken"] = c["id"] in broken
             with open(os.path.join(cdir, "catalog.json"), "w", encoding="utf-8") as fh:
-                json.dump(catalog_data(), fh, ensure_ascii=False)
+                json.dump(cat, fh, ensure_ascii=False)
             cfg = hugo_config(tmp, "catalog", base_url, public, cdir, params={"catalog": True})
-            hugo("--config", f"hugo.toml,{cfg}")
-            print(f"  built / (catalog of {len(fs)} fields)", file=sys.stderr)
+            if not hugo("--config", f"hugo.toml,{cfg}"):
+                sys.exit("hugo failed building the catalog")
+            print(f"  built / (catalog of {len(fs)} fields{f', {len(broken)} left out' if broken else ''})", file=sys.stderr)
+    if os.environ.get("GITHUB_OUTPUT"):                  # for the workflow's final check
+        with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+            fh.write(f"broken={' '.join(broken)}\n")
+    return broken
 
 
 def serve(field_id):

@@ -54,12 +54,18 @@
       if (!f) return;
       (f.papers || []).forEach(function (p) {
         var hit = p.tags.filter(function (t) { return want[fid][t]; });
-        if (hit.length) items.push({ p: p, f: f, fid: fid, hit: hit });
+        if (hit.length) items.push({ p: p, f: f, hit: hit.map(function (t) { return fid + '/' + t; }) });
       });
     });
     items.sort(function (a, b) { return a.p.date < b.p.date ? 1 : a.p.date > b.p.date ? -1 : 0; });
+    // a paper in two fields is listed once, with the followed subfields of both
     var seen = {};
-    items = items.filter(function (x) { if (seen[x.p.id]) return false; seen[x.p.id] = true; return true; });
+    items = items.filter(function (x) {
+      var first = seen[x.p.id];
+      if (first) { first.hit = first.hit.concat(x.hit); return false; }
+      seen[x.p.id] = x;
+      return true;
+    });
 
     var list = document.getElementById('feed-list');
     list.textContent = '';
@@ -78,7 +84,7 @@
       a.appendChild(t);
       a.appendChild(el('p', 'card-au', x.p.authors.join(', ')));
       var foot = el('div', 'card-foot');
-      foot.textContent = x.hit.map(function (s) { var b = known[x.fid + '/' + s]; return b ? b.getAttribute('data-name') : s; }).join(' · ');
+      foot.textContent = x.hit.map(function (k) { var b = known[k]; return b ? b.getAttribute('data-name') : k; }).join(' · ');
       a.appendChild(foot);
       list.appendChild(a);
     });

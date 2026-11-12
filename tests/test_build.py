@@ -99,3 +99,74 @@ class SiteTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+HUGO = shutil.which("hugo")
+
+
+@unittest.skipUnless(HUGO or os.environ.get("CI"), "hugo not installed")   # in CI a missing hugo fails
+class BuildTest(unittest.TestCase):
+    """The real build(), with Hugo, on data made by fetch.main() against the fake arXiv."""
+
+    @classmethod
+    def setUpClass(cls):
+        from test_fetch import run as fetch_run
+        out, _ = fetch_run()
+        cls.survey = json.dumps(out)
+        with open(os.path.join(_env.HERE, "fixtures", "map.toml"), encoding="utf-8") as f:
+            cls.map = f.read()
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="ls-build-")
+        self.addCleanup(shutil.rmtree, self.root)
+        self.public = os.path.join(self.root, "public")
+
+    def write(self, rel, text):
+        path = os.path.join(self.root, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def read(self, rel):
+        with open(os.path.join(self.public, rel), encoding="utf-8") as f:
+            return f.read()
+
+    def test_single_map_template(self):
+        self.write("map.toml", self.map)
+        self.write("data/survey.json", self.survey)
+        self.assertEqual(S.build("https://x.org/site/", self.public, self.root), [])
+        self.assertIn("Test Field: A Living Map", self.read("index.html"))
+        self.assertIn("<item>", self.read("index.xml"))
+        self.assertIn("<item>", self.read("feeds/tables.xml"))
+        self.assertFalse(os.path.exists(os.path.join(self.public, "fields")))
+
+    def test_broken_field_is_left_out_and_the_rest_builds(self):
+        self.write("fields/good/map.toml", self.map)
+        self.write("data/fields/good/survey.json", self.survey)
+        self.write("fields/empty/map.toml", self.map)                    # no data yet
+        self.write("fields/bad/map.toml", "[map\ntitle = 'oops'\n")      # not TOML
+        self.write("fields/bad/notes.toml", "")
+        self.assertEqual(S.build("https://x.org/site/", self.public, self.root), ["bad"])
+        self.assertIn("<item>", self.read("fields/good/feeds/tables.xml"))
+        self.assertIn("generated yet", self.read("fields/empty/index.html"))
+        self.assertFalse(os.path.exists(os.path.join(self.public, "fields", "bad")))
+        catalog = self.read("index.html")
+        self.assertIn("temporarily unavailable", catalog)
+        self.assertIn("/site/fields/good/", catalog)
+
+    def test_broken_single_map_stops(self):
+        self.write("map.toml", "not = [toml")
+        with self.assertRaises(SystemExit):
+            S.build("https://x.org/site/", self.public, self.root)
+
+    def test_refuses_to_clear_what_is_not_a_build(self):
+        for target in (_env.ROOT, os.path.dirname(_env.ROOT)):
+            with self.assertRaises(SystemExit):
+                S.clear_output(target)
+        self.write("keep/notes.txt", "mine")
+        with self.assertRaises(SystemExit):
+            S.clear_output(os.path.join(self.root, "keep"))
+        self.assertTrue(os.path.exists(os.path.join(self.root, "keep", "notes.txt")))
+        self.write("old/index.html", "")                                # an earlier build: cleared
+        S.clear_output(os.path.join(self.root, "old"))
+        self.assertFalse(os.path.exists(os.path.join(self.root, "old")))
