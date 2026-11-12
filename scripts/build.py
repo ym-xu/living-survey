@@ -71,8 +71,9 @@ def run_scripts(script, args):
         r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", script), *args], env=env_for(f))
         if r.returncode:
             failed.append(f["id"] or "map")
+            why = {3: "nothing could be fetched (arXiv unreachable?)", 1: "a problem in its map.toml"}.get(r.returncode, f"exit {r.returncode}")
             # a GitHub Actions annotation, so a broken field is visible without failing the others
-            print(f"::error title={f['src']}::{script} failed for this field; its page keeps the last data", file=sys.stderr)
+            print(f"::error title={f['src']}::{script} failed for this field: {why}; its page keeps the last data", file=sys.stderr)
     return failed
 
 

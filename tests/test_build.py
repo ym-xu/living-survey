@@ -1,9 +1,12 @@
 """Tests for scripts/build.py: finding fields, the catalog data and the subfield feeds."""
+import io
 import json
 import os
 import shutil
 import tempfile
 import unittest
+from contextlib import redirect_stderr
+from unittest import mock
 import xml.etree.ElementTree as ET
 
 import _env  # noqa: F401  (must come first: isolates data/)
@@ -192,3 +195,29 @@ class BuildTest(unittest.TestCase):
         page = self.read("index.html")
         self.assertIn("data-flag=watch", page)
         self.assertIn("data-watch=true", page)
+
+
+ORIG_FIELDS = S.fields
+
+
+class RunScriptsTest(unittest.TestCase):
+    """build.py fetch must report a field whose fetch.py exits non-zero (e.g. 3: arXiv unreachable)."""
+
+    def test_unreachable_field_fails_the_fetch_step(self):
+        codes = iter([0, 3])                         # first field fine, second could not fetch
+        fake = lambda *a, **k: mock.Mock(returncode=next(codes))
+        repo = tempfile.mkdtemp(prefix="ls-run-")
+        self.addCleanup(shutil.rmtree, repo)
+        for f in ("one", "two"):
+            os.makedirs(os.path.join(repo, "fields", f))
+            open(os.path.join(repo, "fields", f, "map.toml"), "w").close()
+        with mock.patch.object(S.subprocess, "run", fake), mock.patch.object(S, "fields", lambda: ORIG_FIELDS(repo)), \
+                redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(S.run_scripts("fetch.py", []), ["two"])
+        self.assertIn("arXiv unreachable", err.getvalue())
+
+    def test_fetch_command_exit_code(self):
+        with mock.patch.object(S, "run_scripts", lambda script, args: ["two"]), mock.patch("sys.argv", ["build.py", "fetch"]):
+            with self.assertRaises(SystemExit) as cm:
+                S.main()
+        self.assertEqual(cm.exception.code, 1)

@@ -11,7 +11,9 @@ Standard library only. How a paper is filed:
   * the paper must be about the topic ([filter] topic, scored the same way), may need
     a required cue ([filter] require) and must not hit [filter] exclude.
 If arXiv can't be reached the existing data file is left untouched, so the site
-still builds with the last good snapshot.
+still builds with the last good snapshot — but the run exits with UNREACHABLE (3), so
+the failure is reported rather than hidden. Exit codes: 0 written, 1 a problem in
+map.toml, 3 nothing fetched (old data kept).
 
 Thank you to arXiv for use of its open access interoperability.
 """
@@ -515,11 +517,19 @@ def main():
     print(f"wrote {len(papers)} papers ({weeks} weeks) to {os.path.relpath(OUT, mc.ROOT)}", file=sys.stderr)
 
 
-if __name__ == "__main__":
+UNREACHABLE = 3
+
+
+def cli():
     try:
         main()
     except SystemExit:
         raise                      # a problem in map.toml: say so and fail
     except Exception as exc:
+        # keep yesterday's data (the page still builds from it), but don't call it a success
         print(f"fetch failed, keeping the existing data: {exc}", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(UNREACHABLE)
+
+
+if __name__ == "__main__":
+    cli()
