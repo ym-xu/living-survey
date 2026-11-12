@@ -7,6 +7,7 @@ import io
 import json
 import os
 import unittest
+import urllib.error
 import xml.etree.ElementTree as ET
 from contextlib import redirect_stderr
 from unittest import mock
@@ -106,3 +107,26 @@ class FetchTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnreachableTest(unittest.TestCase):
+    """arXiv answers 429 to every call: the old data stays, and the run says it failed."""
+
+    def test_429_everywhere_keeps_data_and_exits_unreachable(self):
+        run()                                        # a good snapshot to keep
+        path = os.path.join(TMP, "survey.json")
+        with open(path, "rb") as f:
+            before = f.read()
+
+        def refuse(params, timeout=60):
+            raise urllib.error.HTTPError("https://export.arxiv.org/api/query", 429, "Too Many Requests", {}, None)
+
+        with mock.patch.object(fetch, "arxiv_get", refuse), mock.patch.object(fetch.time, "sleep", lambda s: None), \
+                redirect_stderr(io.StringIO()) as err:
+            with self.assertRaises(SystemExit) as cm:
+                fetch.cli()
+        self.assertEqual(cm.exception.code, fetch.UNREACHABLE)
+        self.assertNotEqual(cm.exception.code, 0)
+        self.assertIn("keeping the existing data", err.getvalue())
+        with open(path, "rb") as f:
+            self.assertEqual(f.read(), before)
