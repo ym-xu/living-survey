@@ -29,11 +29,16 @@ import tomllib
 import xml.etree.ElementTree as ET
 from email.utils import format_datetime
 
+import arxiv
+import pool
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 FIELDS = os.path.join(ROOT, "fields")
 CATALOG = os.path.join(FIELDS, "catalog.toml")
 FEED_ITEMS = 40           # newest papers per subfield feed
 RECENT_DAYS = 14          # papers per field kept in the catalog for "my feed"
+CACHE = os.environ.get("LS_CACHE") or os.path.join(ROOT, "scripts", ".cache")
+POOL = os.path.join(CACHE, "arxiv_pool.json")   # the one arXiv download every field files from
 
 
 def fields(root=ROOT):
@@ -59,22 +64,42 @@ def catalog_settings(root=ROOT):
         return {}
 
 
-def env_for(field):
-    return dict(os.environ, LS_MAP=field["map"], LS_NOTES=field["notes"], LS_DATA=field["data"])
+def env_for(field, extra=None):
+    return dict(os.environ, LS_MAP=field["map"], LS_NOTES=field["notes"], LS_DATA=field["data"], **(extra or {}))
 
 
-def run_scripts(script, args):
+def run_scripts(script, args, extra=None):
     """Run scripts/<script> once per field. Returns the ids that failed."""
     failed = []
     for f in fields():
         print(f"== {f['id'] or 'map'}: {script}", file=sys.stderr, flush=True)
-        r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", script), *args], env=env_for(f))
+        r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", script), *args], env=env_for(f, extra))
         if r.returncode:
             failed.append(f["id"] or "map")
             why = {3: "nothing could be fetched (arXiv unreachable?)", 1: "a problem in its map.toml"}.get(r.returncode, f"exit {r.returncode}")
             # a GitHub Actions annotation, so a broken field is visible without failing the others
             print(f"::error title={f['src']}::{script} failed for this field: {why}; its page keeps the last data", file=sys.stderr)
     return failed
+
+
+def fetch_all():
+    """One shared arXiv download (scripts/pool.py), then each field files its papers from
+    it. If arXiv can't be reached every field keeps its data and every field counts as failed."""
+    fs = fields()
+    print("== shared arXiv download", file=sys.stderr, flush=True)
+    try:
+        st = pool.refresh([f["map"] for f in fs], POOL)
+    except arxiv.Unreachable as e:
+        print(f"::error title=arXiv::{e}; every field keeps its last data", file=sys.stderr)
+        return [f["id"] or "map" for f in fs]
+    if st:
+        line = (f"arXiv volume: {st['mode']} refresh, {st['streams']} query stream(s), {st['calls']} calls, "
+                f"{st['entries']} entries read, {st['new']} new, {st['papers']} unique papers since {st['since']}")
+        print("  " + line, file=sys.stderr)
+        if os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+                fh.write(line + "\n")
+    return run_scripts("fetch.py", [], {"LS_POOL": POOL} if st else None)
 
 
 # ------------------------------------------------------------------- data ----
@@ -273,9 +298,9 @@ def main():
     s.add_argument("field", nargs="?")
     a = ap.parse_args()
     if a.cmd == "fetch":
-        sys.exit(1 if run_scripts("fetch.py", []) else 0)
+        sys.exit(1 if fetch_all() else 0)
     if a.cmd == "cards":
-        sys.exit(1 if run_scripts("cards.py", a.rest) else 0)
+        sys.exit(1 if run_scripts("cards.py", a.rest, {"LS_POOL": POOL} if os.path.exists(POOL) else None) else 0)
     if a.cmd == "build":
         build(a.base_url, os.path.abspath(a.out))
     if a.cmd == "serve":
