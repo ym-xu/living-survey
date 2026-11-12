@@ -79,6 +79,7 @@ Semantic Scholar ─┘     cards.py ──> survey_cards.json                  
                         (LLM, optional)            catalog of all fields + "My feed" ──> / ──┘
 ```
 
+- With several fields, arXiv is asked once per run for the union of their queries (`scripts/pool.py`, cached in `scripts/.cache/`); each field then applies its own query locally, the way arXiv's search does (Porter-stemmed words, phrases in order), so its papers are the same as if it had asked arXiv itself. The whole window is re-read weekly; other days only the newest pages. All arXiv calls go through `scripts/arxiv.py`: ≥3.5 s apart, and on HTTP 429/503 it honours `Retry-After` and backs off from 30 s.
 - Each paper is scored against every subfield rule: title hits count three times, abstract hits once (capped).
 - A paper gets a subfield when it scores at least 2, and its strongest subfield is its main subject.
 - Generated data is never committed. The GitHub Actions cache keeps yesterday's copy, so an arXiv outage just means yesterday's map.

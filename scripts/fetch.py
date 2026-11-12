@@ -29,7 +29,9 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
+import arxiv
 import mapconfig as mc
+import pool as shared
 
 OUT = os.path.join(mc.DATA, "survey.json")
 S2_URL = "https://api.semanticscholar.org/graph/v1/paper/batch?fields=venue,publicationVenue,year,citationCount,authors"
@@ -82,34 +84,41 @@ def curated(notes):
             "picks": {p["id"]: p.get("note", "") for p in notes.get("picks", [])}}
 
 
-def arxiv_get(params, timeout=60):
-    req = urllib.request.Request("https://export.arxiv.org/api/query?" + urllib.parse.urlencode(params), headers={"User-Agent": mc.UA})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return ET.fromstring(r.read())
+POOL = os.environ.get("LS_POOL") or ""          # set by build.py fetch: file papers from the shared download
+TITLES = os.path.join(mc.CACHE, "arxiv_titles.json")
+
+
+def arxiv_get(params):
+    return arxiv.get(params)          # rate-limited, retried; raises arxiv.Unreachable
 
 
 def arxiv_titles(ids):
-    """{id: (title, date)} for a few explicit ids (featured papers outside the window)."""
-    if not ids:
-        return {}
+    """{id: (title, date)} for a few explicit ids (featured papers outside the window).
+    Titles don't change, so they are cached and asked for only once."""
     try:
-        root = arxiv_get({"id_list": ",".join(ids), "max_results": len(ids)})
-    except Exception as e:
-        print(f"  featured lookup failed ({e})", file=sys.stderr)
-        return {}
-    return {base_id(e.findtext("a:id", "", NS)): (clean(e.findtext("a:title", "", NS)), clean(e.findtext("a:published", "", NS))[:10])
-            for e in root.findall("a:entry", NS)}
+        with open(TITLES, encoding="utf-8") as f:
+            cache = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        cache = {}
+    todo = [i for i in ids if i not in cache]
+    if todo:
+        try:
+            root = arxiv_get({"id_list": ",".join(todo), "max_results": len(todo)})
+            for e in root.findall("a:entry", NS):
+                if clean(e.findtext("a:published", "", NS)):
+                    cache[base_id(e.findtext("a:id", "", NS))] = [clean(e.findtext("a:title", "", NS)),
+                                                                  clean(e.findtext("a:published", "", NS))[:10]]
+            os.makedirs(os.path.dirname(TITLES), exist_ok=True)
+            with open(TITLES, "w", encoding="utf-8") as f:
+                json.dump(cache, f, ensure_ascii=False)
+        except Exception as e:
+            print(f"  featured lookup failed ({e})", file=sys.stderr)
+    return {i: tuple(cache[i]) for i in ids if i in cache}
 
 
 def fetch(query, start):
-    for attempt in range(3):
-        try:
-            return arxiv_get({"search_query": query, "start": start, "max_results": PAGE,
-                              "sortBy": "submittedDate", "sortOrder": "descending"})
-        except Exception as e:
-            print(f"  arXiv request failed ({e}); retry {attempt + 1}/3", file=sys.stderr)
-            time.sleep(5 * (attempt + 1))
-    raise RuntimeError("arXiv unreachable")
+    return arxiv_get({"search_query": query, "start": start, "max_results": PAGE,
+                      "sortBy": "submittedDate", "sortOrder": "descending"})
 
 
 def s2_enrich(papers):
@@ -301,6 +310,24 @@ def main():
         return pub
 
     papers, seen, start, reached = [], set(), 0, False
+    local = arxiv.Query.parse(cfg["arxiv"]["categories"], cfg["arxiv"]["queries"]) if POOL else None
+    got = shared.entries(POOL) if local else None
+    if POOL and not local:
+        print("  this field's queries use syntax the shared pool can't evaluate: asking arXiv directly", file=sys.stderr)
+    by_pool = {}
+    if got:                          # the shared download: keep what this field's own query would have returned
+        meta, pooled = got
+        by_pool = {arxiv.entry_id(e): e for e in pooled}
+        n = 0
+        for e in pooled:
+            if local.matches(e):
+                add(e)
+                n += 1
+        reached = meta["since"] <= since.isoformat()
+        start = MAX_RESULTS          # skip the live loop below
+        print(f"  from the shared pool: {n} of {len(pooled)} entries match this field's query", file=sys.stderr)
+        if not reached:
+            print(f"  WARNING: the shared pool only reaches back to {meta['since']}, not {since}", file=sys.stderr)
     while start < MAX_RESULTS:
         root = fetch(query, start)
         entries = root.findall("a:entry", NS)
@@ -317,13 +344,15 @@ def main():
             reached = True
             break
         start += PAGE
-        time.sleep(3.5)  # arXiv asks for ≥3 s between calls
-    if not reached:
+    if not reached and not by_pool:
         print(f"  WARNING: stopped at the {MAX_RESULTS}-result cap before reaching {since}; the oldest weeks are "
               f"incomplete and their trends understate the field — narrow [arxiv] queries or lower [map] weeks",
               file=sys.stderr)
 
     # notes.toml include: papers the query never returned are fetched by id
+    for i in sorted(cur["include"] - seen):
+        if i in by_pool:
+            add(by_pool[i])
     missing = sorted(cur["include"] - seen)
     if missing:
         try:
@@ -514,7 +543,8 @@ def main():
     os.makedirs(mc.DATA, exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
-    print(f"wrote {len(papers)} papers ({weeks} weeks) to {os.path.relpath(OUT, mc.ROOT)}", file=sys.stderr)
+    print(f"wrote {len(papers)} papers ({weeks} weeks) to {os.path.relpath(OUT, mc.ROOT)}; "
+          f"{arxiv.calls} arXiv call(s) by this field", file=sys.stderr)
 
 
 UNREACHABLE = 3

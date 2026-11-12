@@ -16,12 +16,13 @@ from _env import TMP, TODAY, pid  # noqa: E402  (must come first: isolates data/
 import fetch  # noqa: E402
 
 
-def entry(n, title, abstract="", days_ago=1, comment="", authors=("A. Author",)):
+def entry(n, title, abstract="", days_ago=1, comment="", authors=("A. Author",), cats=("cs.CV",)):
     date = (TODAY - dt.timedelta(days=days_ago)).isoformat()
     who = "".join(f"<author><name>{a}</name></author>" for a in authors)
     return (f"<entry><id>http://arxiv.org/abs/{pid(n)}v1</id><published>{date}T00:00:00Z</published>"
             f"<title>{title}</title><summary>{abstract}</summary>{who}"
-            f"<arxiv:comment>{comment}</arxiv:comment><arxiv:primary_category term='cs.CV'/></entry>")
+            f"<arxiv:comment>{comment}</arxiv:comment><arxiv:primary_category term='{cats[0]}'/>"
+            + "".join(f"<category term='{c}'/>" for c in cats) + "</entry>")
 
 
 def feed(entries):

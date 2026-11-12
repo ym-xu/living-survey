@@ -21,9 +21,23 @@ NOTES = os.path.join(TMP, "notes.toml")
 with open(NOTES, "w") as f:
     f.write(f'exclude = [{{ id = "{pid(3)}", why = "hand-excluded" }}]\n'
             f'include = [{{ id = "{pid(9)}", why = "the query misses it", tag = "charts" }}]\n')
-os.environ.update(LS_MAP=os.path.join(HERE, "fixtures", "map.toml"), LS_NOTES=NOTES, LS_DATA=TMP)
+os.environ.update(LS_MAP=os.path.join(HERE, "fixtures", "map.toml"), LS_NOTES=NOTES, LS_DATA=TMP,
+                  LS_CACHE=os.path.join(TMP, "cache"))
+os.environ.pop("LS_POOL", None)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 import mapconfig  # noqa: E402
 
 assert os.path.realpath(mapconfig.DATA) == os.path.realpath(TMP), "tests must not touch the real data/ directory"
+assert mapconfig.CACHE.startswith(TMP), "tests must not touch the real scripts/.cache"
+
+# No test may reach the network: any real HTTP call fails loudly instead of quietly
+# talking to arXiv or Semantic Scholar.
+import urllib.request  # noqa: E402
+
+
+def _no_network(*a, **k):
+    raise AssertionError("a test tried to use the network")
+
+
+urllib.request.urlopen = _no_network

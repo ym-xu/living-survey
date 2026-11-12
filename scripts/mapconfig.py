@@ -16,6 +16,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MAP = os.environ.get("LS_MAP") or os.path.join(ROOT, "map.toml")
 NOTES = os.environ.get("LS_NOTES") or os.path.join(ROOT, "notes.toml")
 DATA = os.environ.get("LS_DATA") or os.path.join(ROOT, "data")
+CACHE = os.environ.get("LS_CACHE") or os.path.join(ROOT, "scripts", ".cache")   # shared between fields
 UA = "living-survey/1.0 (+https://github.com/ym-xu/living-survey)"
 
 

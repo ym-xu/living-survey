@@ -217,7 +217,33 @@ class RunScriptsTest(unittest.TestCase):
         self.assertIn("arXiv unreachable", err.getvalue())
 
     def test_fetch_command_exit_code(self):
-        with mock.patch.object(S, "run_scripts", lambda script, args: ["two"]), mock.patch("sys.argv", ["build.py", "fetch"]):
+        with mock.patch.object(S, "fetch_all", lambda: ["two"]), mock.patch("sys.argv", ["build.py", "fetch"]):
             with self.assertRaises(SystemExit) as cm:
                 S.main()
         self.assertEqual(cm.exception.code, 1)
+
+
+class FetchAllTest(unittest.TestCase):
+    """build.py fetch: one shared download, then every field files from it."""
+
+    def test_unreachable_arxiv_fails_every_field_and_files_none(self):
+        ran = []
+        def down(*a, **k):
+            raise S.arxiv.Unreachable("HTTP 429")
+        with mock.patch.object(S.pool, "refresh", down), mock.patch.object(S, "run_scripts", lambda *a: ran.append(a)), \
+                redirect_stderr(io.StringIO()) as err:
+            failed = S.fetch_all()
+        self.assertEqual(failed, [f["id"] or "map" for f in S.fields()])
+        self.assertEqual(ran, [])                      # old data stays: nothing re-filed
+        self.assertIn("::error", err.getvalue())
+
+    def test_fields_file_from_the_pool(self):
+        seen = {}
+        stats = {"mode": "full", "streams": 1, "calls": 3, "entries": 900, "new": 900, "papers": 850, "since": "2026-05-01"}
+        with mock.patch.object(S.pool, "refresh", lambda maps, path: stats), \
+                mock.patch.object(S, "run_scripts", lambda script, args, extra=None: seen.update(extra=extra) or []), \
+                redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(S.fetch_all(), [])
+        self.assertEqual(seen["extra"], {"LS_POOL": S.POOL})
+        self.assertIn("850 unique papers", err.getvalue())
+        self.assertTrue(S.POOL.startswith(_env.TMP))   # tests never touch the real cache

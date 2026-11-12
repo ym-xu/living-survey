@@ -28,12 +28,14 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
+import arxiv
 import llm
 import mapconfig as mc
+import pool as shared
 
 SURVEY = os.path.join(mc.DATA, "survey.json")
 OUT = os.path.join(mc.DATA, "survey_cards.json")
-ABSTRACTS = os.path.join(mc.ROOT, "scripts", ".cache", "abstracts.json")
+ABSTRACTS = os.path.join(mc.CACHE, "abstracts.json")
 PROMPT = "c1"            # bump when the prompt below changes, so cards are redone
 LIMIT = 150              # new cards per run at most
 NS = {"a": "http://www.w3.org/2005/Atom"}
@@ -82,22 +84,31 @@ def clean_tex(s):
 
 
 def fetch_abstracts(ids):
-    """Full abstracts from arXiv (survey.json keeps an excerpt), cached in scripts/.cache."""
+    """Full abstracts (survey.json keeps an excerpt): from the shared pool when it has
+    them, otherwise from arXiv; cached in scripts/.cache."""
     cache = load_json(ABSTRACTS, {})
     todo = [i for i in ids if i not in cache]
+    got = shared.entries(os.environ["LS_POOL"]) if todo and os.environ.get("LS_POOL") else None
+    if got:
+        want = set(todo)
+        for e in got[1]:
+            i = arxiv.entry_id(e)
+            if i in want:
+                cache[i] = {"title": clean_tex(e.findtext("a:title", "", NS)), "abstract": clean_tex(e.findtext("a:summary", "", NS))}
+        todo = [i for i in todo if i not in cache]
     for k in range(0, len(todo), 100):
         chunk = todo[k:k + 100]
-        q = urllib.parse.urlencode({"id_list": ",".join(chunk), "max_results": len(chunk)})
-        req = urllib.request.Request("https://export.arxiv.org/api/query?" + q, headers={"User-Agent": mc.UA})
-        with urllib.request.urlopen(req, timeout=90) as r:
-            root = ET.fromstring(r.read())
+        root = arxiv.get({"id_list": ",".join(chunk), "max_results": len(chunk)})
         for e in root.findall("a:entry", NS):
             i = re.sub(r"v\d+$", "", e.findtext("a:id", "", NS).rsplit("/", 1)[-1])
             cache[i] = {"title": clean_tex(e.findtext("a:title", "", NS)), "abstract": clean_tex(e.findtext("a:summary", "", NS))}
         os.makedirs(os.path.dirname(ABSTRACTS), exist_ok=True)
         with open(ABSTRACTS, "w", encoding="utf-8") as f:
             json.dump(cache, f, ensure_ascii=False)
-        time.sleep(3.5)
+    if got:
+        os.makedirs(os.path.dirname(ABSTRACTS), exist_ok=True)
+        with open(ABSTRACTS, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False)
     return cache
 
 
