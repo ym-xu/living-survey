@@ -1,4 +1,4 @@
 {{- $m := site.Data.map.map -}}
 <div class="footer">
-  <p>{{ with $m.author }}Curated by {{ with $m.author_url }}<a href="{{ . }}">{{ $m.author }}</a>{{ else }}{{ . }}{{ end }} · {{ end }}Built with <a href="https://github.com/ym-xu/living-survey" rel="noopener">living-survey</a> — fork it to map your own field · <a href="{{ "index.xml" | relURL }}">RSS</a></p>
+  <p>Built with <a href="https://github.com/ym-xu/living-survey" rel="noopener">living-survey</a> — fork it to map your own field · <a href="{{ "index.xml" | relURL }}">RSS</a></p>
 </div>

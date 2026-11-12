@@ -1,6 +1,6 @@
 /* ============================================================
-   site.css — Yiming Xu personal site
-   A personal homepage with the manners of a LaTeX document:
+   site.css — living-survey
+   A research map with the manners of a LaTeX document:
    a white sheet on a grey desk, Palatino (TeX Gyre Pagella),
    numbered sections, thin rules, footnotes, one blue accent.
    Self-contained: the theme's styles.css is no longer loaded.
@@ -548,14 +548,8 @@ table.booktabs.grouped td:nth-child(4) { color: var(--muted); }
 .err pre { font-size: .9rem; line-height: 1.5; color: var(--muted); white-space: pre-wrap; }
 
 /* survey v5 details */
-sup.mine { color: var(--link); margin-left: .1em; }
 .subentry .ov a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: .15em; }
 .subentry .ov a:hover { color: var(--link); text-decoration-color: currentColor; }
-.mywork { margin: 0 auto 2.2rem; max-width: 88%; padding: .8rem 1.1rem; border-left: 2px solid var(--link); background: var(--surface); font-size: .97rem; line-height: 1.6; }
-.mywork-h { margin: 0 0 .3rem; font-weight: 700; }
-.mywork p { margin: 0; }
-.minedot { color: var(--link); font-size: .6em; margin-left: .45em; vertical-align: .25em; }
-@media (max-width: 720px) { .mywork { max-width: 100%; } }
 
 /* ---------- survey: methods x tasks (Figure 4) ---------- */
 .mx-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }

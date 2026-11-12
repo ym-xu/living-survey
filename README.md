@@ -65,7 +65,7 @@ With a single `map.toml`, `python3 scripts/fetch.py` and `hugo server` work as b
 | File | What it holds | Required |
 |---|---|---|
 | `map.toml` | Title, the arXiv query, what counts as the field, the subfield rules, rising-term stop words, and the method/task lists for Figure 4. | yes |
-| `notes.toml` | Hand corrections (`exclude`, `include`), pinned papers per subfield, picks with a note, subfield overviews, key references, a benchmark table, and a "where my work fits" note. | no |
+| `notes.toml` | Hand corrections (`exclude`, `include`), pinned papers per subfield, picks with a note, subfield overviews, key references, a benchmark table. | no |
 
 Everything else (layout, styles, scripts) works the same for every field.
 
@@ -88,7 +88,7 @@ Semantic Scholar ─┘     cards.py ──> survey_cards.json                  
 
 Thank you to arXiv for use of its open access interoperability. Citation counts, author IDs and venues come from Semantic Scholar. The page is set in TeX Gyre Pagella (GUST Font License).
 
-MIT licensed. Built by [Yiming Xu](https://ym-xu.github.io/). If you run a map of your own field, open a PR adding it to the list below.
+MIT licensed. If you run a map of your own field, open a PR adding it to the list below.
 
 ### Maps
 

@@ -14,13 +14,11 @@ title = "Document Understanding: A Living Map"
 description = "A daily-updated map of document understanding research — layout, OCR, tables, charts, document QA, long documents, retrieval and agents."
 # The abstract at the top of the page (markdown).
 intro = """
-A map of the field I work in. The paper counts are compiled automatically every morning from arXiv and filed into subfields by transparent rules, with a hand-kept list of corrections; the overviews, classic papers and benchmarks are written by hand. It shows where the community's attention is going — it is not a full survey, and not a curated reading list.
+A daily map of document understanding research. The paper counts are compiled automatically every morning from arXiv and filed into subfields by transparent rules, with a hand-kept list of corrections; the overviews, classic papers and benchmarks are written by hand. It shows where the community's attention is going — it is not a full survey, and not a curated reading list.
 """
-author = "Yiming Xu"
-author_url = "https://ym-xu.github.io/"
 weeks = 26                      # history window: charts and the paper list
 # Papers by these authors get a "followed" mark and their own filter.
-watch = ["Yiming Xu", "Dimosthenis Karatzas", "Ernest Valveny"]
+watch = []
 
 [arxiv]
 categories = ["cs.CV", "cs.CL", "cs.IR", "cs.AI", "cs.LG", "cs.DL", "cs.MM"]

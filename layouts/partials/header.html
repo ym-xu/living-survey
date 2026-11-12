@@ -1,7 +1,7 @@
 {{- $m := site.Data.map.map -}}
 <div class="header">
   <div class="brand">
-    {{ with $m.author_url }}<a href="{{ . }}">{{ $m.author | default "Home" }}</a>{{ else }}<a href="{{ "/" | relURL }}">{{ $m.author | default "Living Survey" }}</a>{{ end }}
+    <a href="{{ site.Params.catalogURL | default ("/" | relURL) }}">{{ site.Title }}</a>
   </div>
   <nav class="nav" aria-label="Main">
     {{ if site.Params.catalog }}

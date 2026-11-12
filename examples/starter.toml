@@ -6,8 +6,6 @@
 title = "TODO: Your Field: A Living Map"
 description = "A daily-updated map of TODO research."
 intro = "What the TODO community has been working on lately, compiled every morning from arXiv."
-author = ""              # your name, shown in the header and footer
-author_url = ""          # e.g. your homepage
 weeks = 26
 watch = []               # authors to mark, e.g. ["Ada Lovelace"]
 

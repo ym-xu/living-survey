@@ -88,7 +88,7 @@ historical = [["Non-recurrent HTR", "2005.13044"], ["Rethinking text-line recogn
 imaging    = [["DocTr", "2110.12942"], ["DocDeshadower", "2307.15318"]]
 
 # Core benchmarks — the usual reference points per subfield.
-# `id` = arXiv id, or `url` for one that isn't on arXiv; `mine = true` marks my own.
+# `id` = arXiv id, or `url` for one that isn't on arXiv.
 
 [[benchmarks]]
 name = "OCRBench"
@@ -169,7 +169,6 @@ year = 2026
 sub = "agents"
 task = "Agentic QA over document collections, scoring the whole search trajectory"
 metric = "Accuracy, trajectory effort"
-mine = true
 
 [[benchmarks]]
 name = "InfographicVQA"
@@ -266,8 +265,3 @@ year = 2019
 sub = "kie"
 task = "Receipt OCR and key information extraction"
 metric = "F1"
-
-# A short note on where my own research sits on this map (shown under the abstract).
-[my_work]
-subfields = ["agents", "longdoc", "rag"]
-text = "My work sits where **agents** meet **long documents**, with a foot in retrieval. [MADQA](https://ym-xu.github.io/publications/icml-madqa/) (ICML 2026, oral) is a benchmark for agentic question answering over document collections that scores the whole search trajectory, not just the answer — and shows agents reach human accuracy only by working about five times harder. [AdaNav](https://ym-xu.github.io/publications/icdar-adanav/) (ICDAR 2026, oral) builds a multimodal document tree and navigates it at query-adaptive granularity instead of relying on an embedding retriever."

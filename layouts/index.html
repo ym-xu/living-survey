@@ -7,7 +7,7 @@
 <article class="survey">
   <header class="maketitle fx-title">
     <h1>{{ $m.title }}</h1>
-    <p class="mt-author">Compiled automatically from arXiv every morning{{ with $notes }}{{ if .overview }}, with editor’s notes{{ end }}{{ end }}{{ with $m.author }} · {{ with $m.author_url }}<a href="{{ . }}">{{ $m.author }}</a>{{ else }}{{ . }}{{ end }}{{ end }}</p>
+    <p class="mt-author">Compiled automatically from arXiv every morning{{ with $notes }}{{ if .overview }}, with editor’s notes{{ end }}{{ end }}</p>
     {{ with $d }}<p class="mt-date">Last updated {{ .updated }} · {{ .total }} research papers over {{ .weeks }} weeks{{ with .applications }} (+ {{ . }} applications){{ end }} · <a href="{{ "index.xml" | relURL }}">follow via RSS</a></p>{{ end }}
   </header>
 
@@ -16,14 +16,6 @@
     {{ $m.intro | default $m.description | markdownify }}
   </div>
 
-  {{ $mine := slice }}
-  {{ with $notes }}{{ with .my_work }}
-    {{ $mine = .subfields | default slice }}
-    <aside class="mywork fx-after2" id="my-work">
-      <p class="mywork-h">Where my work fits</p>
-      <p>{{ .text | markdownify }}</p>
-    </aside>
-  {{ end }}{{ end }}
 
   {{ if not (and $d $d.weekly) }}
     <p class="muted">The survey data hasn’t been generated yet — run <code>python3 scripts/fetch.py</code>, or wait for the first daily run of the GitHub Action.</p>
@@ -55,7 +47,7 @@
           {{ range $i, $s := $d.subfields }}
             <button class="brow" type="button" role="listitem" data-filter="{{ $s.id }}" style="--i: {{ $i }}" title="{{ $s.desc }}"
                     aria-label="{{ $s.name }}: main subject of {{ $s.primary }} papers, touched by {{ $s.count }}; {{ $s.last4w }} in the last four weeks against {{ $s.prev4w }} — show them">
-              <span class="bname">{{ $s.name }}{{ if in $mine $s.id }}<span class="minedot" title="where my work sits">●</span>{{ end }}</span>
+              <span class="bname">{{ $s.name }}</span>
               <span class="bar"><span class="bar-in">
                 <span class="p" style="width: {{ printf "%.2f" (div (mul $s.primary 100.0) $maxC) }}%"></span><span class="s" style="width: {{ printf "%.2f" (div (mul (sub $s.count $s.primary) 100.0) $maxC) }}%"></span>
               </span></span>
@@ -64,7 +56,7 @@
             </button>
           {{ end }}
         </div>
-        <figcaption><b>Figure 1:</b> Subfields over the last {{ $d.weeks }} weeks. Dark: papers whose <i>main</i> subject is the subfield (these add up to {{ $d.total }}); light: papers that also touch it. The right column gives raw counts for the last four weeks against the four before; a percentage is added only when both are at least {{ $minT }}, since smaller counts swing a lot on a handful of papers. Click a row to list its papers.{{ $bursts := where $d.subfields "burst" "!=" nil }}{{ with $bursts }} Bursts: {{ range $k, $b := . }}{{ if $k }}; {{ end }}in {{ $b.name }}, {{ $b.burst.n }} of the {{ $b.burst.of }} earlier papers came out in one week (week of {{ dateFormat "Jan 2" $b.burst.week }}), so part of its drop is that spike passing{{ end }}.{{ end }}{{ if $mine }} <span class="minedot">●</span> marks where my own work sits.{{ end }}</figcaption>
+        <figcaption><b>Figure 1:</b> Subfields over the last {{ $d.weeks }} weeks. Dark: papers whose <i>main</i> subject is the subfield (these add up to {{ $d.total }}); light: papers that also touch it. The right column gives raw counts for the last four weeks against the four before; a percentage is added only when both are at least {{ $minT }}, since smaller counts swing a lot on a handful of papers. Click a row to list its papers.{{ $bursts := where $d.subfields "burst" "!=" nil }}{{ with $bursts }} Bursts: {{ range $k, $b := . }}{{ if $k }}; {{ end }}in {{ $b.name }}, {{ $b.burst.n }} of the {{ $b.burst.of }} earlier papers came out in one week (week of {{ dateFormat "Jan 2" $b.burst.week }}), so part of its drop is that spike passing{{ end }}.{{ end }}</figcaption>
       </figure>
 
       {{ $n := len $d.weekly }}
@@ -112,7 +104,7 @@
           {{ with $notes }}{{ with index .overview $s.id }}{{ $ov = . }}{{ end }}{{ with index .classics $s.id }}{{ $cl = . }}{{ end }}{{ end }}
           <article class="subentry spot" id="sub-{{ $s.id }}">
             <div class="sside">
-              <h3 class="sname"><button type="button" data-filter="{{ $s.id }}" title="List its papers">{{ $s.name }}</button>{{ if in $mine $s.id }}<span class="minedot" title="where my work sits">●</span>{{ end }}</h3>
+              <h3 class="sname"><button type="button" data-filter="{{ $s.id }}" title="List its papers">{{ $s.name }}</button></h3>
               <p class="sstat">{{ $s.primary }} main · {{ $s.count }} in all</p>
               <p class="sstat">{{ $s.last4w }} vs {{ $s.prev4w }} in 4 wk{{ if ne $s.trend nil }} · {{ if gt $s.trend 0 }}<span class="up">+{{ $s.trend }}%</span>{{ else if lt $s.trend 0 }}{{ $s.trend }}%{{ else }}±0%{{ end }}{{ end }}</p>
               <p class="sstat"><a href="{{ printf "feeds/%s.xml" $s.id | relURL }}" title="New {{ $s.name }} papers in a feed reader (or RSS-to-email)">RSS</a></p>
@@ -143,7 +135,7 @@
             {{ with $rows }}
               <tbody>
                 <tr class="grp"><th colspan="4">{{ index $short $sid }}</th></tr>
-                {{ range . }}<tr><td><a href="{{ with .url }}{{ . }}{{ else }}https://arxiv.org/abs/{{ .id }}{{ end }}" rel="noopener">{{ .name }}</a>{{ if .mine }}<sup class="mine" title="I'm a co-author">*</sup>{{ end }}</td><td>{{ .year }}</td><td>{{ .task }}</td><td>{{ .metric }}</td></tr>{{ end }}
+                {{ range . }}<tr><td><a href="{{ with .url }}{{ . }}{{ else }}https://arxiv.org/abs/{{ .id }}{{ end }}" rel="noopener">{{ .name }}</a></td><td>{{ .year }}</td><td>{{ .task }}</td><td>{{ .metric }}</td></tr>{{ end }}
               </tbody>
             {{ end }}
           {{ end }}
